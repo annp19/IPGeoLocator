@@ -1,0 +1,104 @@
+<Window xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:IPGeoLocator"
+  mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="650"
+  x:Class="IPGeoLocator.MainWindow"
+  Title="IP Geolocation Tool"
+  Width="800" Height="650"
+  MinWidth="600" MinHeight="550">
+
+
+  <Panel>
+    <ScrollViewer>
+      <StackPanel Spacing="8" Margin="16">
+
+        <Border Classes="Card">
+          <StackPanel>
+            <TextBlock Text="{Binding Locale[Title]}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+            <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto, Auto">
+              <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Spacing="8">
+                <TextBlock Text="{Binding Locale[IPAddressLabel]}" FontWeight="Medium"/>
+                <TextBox Name="IpInputTextBox" Text="{Binding IpAddressInput}" Watermark="e.g., 8.8.8.8" Width="300" HorizontalAlignment="Left"/>
+                <TextBlock Text="{Binding Locale[AbuseIPDBKeyLabel]}" FontWeight="Medium" Margin="0,8,0,0"/>
+                <TextBox Name="ApiKeyTextBox" Text="{Binding AbuseIpDbApiKey}" Watermark="{Binding Locale[OptionalLabel]}" Width="300" HorizontalAlignment="Left"/>
+                <TextBlock Text="VirusTotal API Key" FontWeight="Medium" Margin="0,8,0,0"/>
+                <TextBox Name="VirusTotalApiKeyTextBox" Text="{Binding VirusTotalApiKey}" Watermark="Optional - for additional threat intelligence" Width="300" HorizontalAlignment="Left"/>
+              </StackPanel>
+
+              <Button Name="GetMyIpButton" Grid.Row="1" Grid.Column="0" Content="{Binding Locale[GetMyIPButton]}" Command="{Binding GetMyIpCommand}" Classes="accent" HorizontalAlignment="Left" Width="120"/>
+              <Button Name="LookupButton" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Content="{Binding Locale[LookupButton]}" Command="{Binding LookupIpCommand}" Classes="accent" HorizontalAlignment="Left" Width="120"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,20,0,0">
+                <ComboBox Name="LanguageComboBox" SelectedIndex="{Binding SelectedLanguageIndex}" Width="120">
+                    <ComboBoxItem Content="English"/>
+                    <ComboBoxItem Content="Vietnamese"/>
+                </ComboBox>
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Locale[ThemeLabel]}" VerticalAlignment="Center"/>
+                    <ToggleSwitch Name="ThemeSwitch" IsChecked="{Binding IsDarkTheme}"/>
+                </StackPanel>
+                <Button Name="HistoryButton" Content="History" Command="{Binding ShowHistoryCommand}" Classes="accent" Width="80" Margin="20,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Panel Height="30" Margin="8">
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding StatusMessage}" Foreground="{Binding StatusBrush}" 
+                     IsVisible="{Binding !IsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Panel>
+
+        <Border Classes="Card" IsVisible="{Binding IsResultVisible}">
+          <StackPanel>
+            <TextBlock Text="{Binding Locale[ResultsTitle]}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,16"/>
+
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Locale[IPAddressResultLabel]}" FontWeight="Bold"/>
+              <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding GeolocationResult.Query}"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Locale[LocationLabel]}" FontWeight="Bold"/>
+              <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Image Source="{Binding FlagImage}" Width="32" Height="24" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding LocationString}" VerticalAlignment="Center"/>
+              </StackPanel>
+              
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding Locale[ISPLabel]}" FontWeight="Bold"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GeolocationResult.Isp}"/>
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="{Binding Locale[CoordinatesLabel]}" FontWeight="Bold"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding CoordinatesString}"/>
+
+              <TextBlock Grid.Row="4" Grid.Column="0" Text="{Binding Locale[TimezoneLabel]}" FontWeight="Bold"/>
+              <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GeolocationResult.Timezone}"/>
+
+              <TextBlock Grid.Row="5" Grid.Column="0" Text="{Binding Locale[LocalTimeLabel]}" FontWeight="Bold"/>
+              <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding LocalTime}"/>
+
+              <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding Locale[ThreatIntelLabel]}" FontWeight="Bold"/>
+              <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ThreatInfo}" Foreground="{Binding StatusBrush}"/>
+              <TextBlock Text="Threat Score:" Grid.Row="7" Grid.Column="0" FontWeight="Bold"/>
+              <TextBlock Text="{Binding ThreatScore}" Grid.Row="7" Grid.Column="1"/>
+              <TextBlock Text="AbuseIPDB:" Grid.Row="8" Grid.Column="0" FontWeight="Bold"/>
+              <TextBlock Text="{Binding AbuseIpDbInfo}" Grid.Row="8" Grid.Column="1"/>
+              <TextBlock Text="VirusTotal:" Grid.Row="9" Grid.Column="0" FontWeight="Bold"/>
+              <TextBlock Text="{Binding VirusTotalInfo}" Grid.Row="9" Grid.Column="1"/>
+              <TextBlock Text="Other Sources:" Grid.Row="10" Grid.Column="0" FontWeight="Bold"/>
+              <TextBlock Text="{Binding ThreatCrowdInfo}" Grid.Row="10" Grid.Column="1"/>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,20,0,0">
+              <Button Name="CopyAllButton" Content="{Binding Locale[CopyAllButton]}" Command="{Binding CopyAllCommand}"/>
+              <Button Name="CopyCoordsButton" Content="{Binding Locale[CopyCoordsButton]}" Command="{Binding CopyCoordsCommand}"/>
+              <Button Name="ExportButton" Content="Export Results" Command="{Binding ExportResultsCommand}" Classes="accent" Margin="8,0,0,0"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+    <!-- Lookup duration moved below the card to avoid overlap -->
+    <TextBlock Text="{Binding LookupDuration}" FontStyle="Italic" Foreground="Gray" Margin="0,8,0,0" HorizontalAlignment="Right"/>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Panel>
+</Window>
