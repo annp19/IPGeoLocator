@@ -329,3 +329,7 @@ BenchmarkDotNet.Artifacts/
 
 # User secrets
 secrets.json
+
+# Test publish directories
+test-publish/
+publish/
