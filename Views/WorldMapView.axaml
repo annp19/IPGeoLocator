@@ -1,0 +1,76 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:IPGeoLocator.ViewModels"
+        x:Class="IPGeoLocator.Views.WorldMapView"
+        Title="World Map Visualization"
+        Width="1000" Height="700"
+        MinWidth="800" MinHeight="600">
+  
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Toolbar -->
+    <Border Grid.Row="0" Classes="Card" Margin="10">
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="10">
+        <TextBlock Text="World Map Visualization" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+        <Button Name="RefreshButton" Content="Refresh" Command="{Binding RefreshCommand}" Margin="20,0,0,0"/>
+        <Button Name="ExportButton" Content="Export Map" Command="{Binding ExportMapCommand}"/>
+        <Button Name="ClearButton" Content="Clear" Command="{Binding ClearMapCommand}"/>
+        <CheckBox Name="ThreatFilterCheckBox" Content="Show Only Threats" IsChecked="{Binding ShowOnlyThreats}" Margin="20,0,0,0"/>
+        <Slider Name="ZoomSlider" Value="{Binding ZoomLevel}" Minimum="1" Maximum="10" Width="100" Margin="10,0,0,0"/>
+        <TextBlock Text="{Binding ZoomLevel, StringFormat='Zoom: {0:F1}'}" VerticalAlignment="Center"/>
+      </StackPanel>
+    </Border>
+    
+    <!-- Map Visualization Area -->
+    <Border Grid.Row="1" Margin="10,0,10,10" Classes="Card">
+      <Grid>
+        <!-- Status overlay -->
+        <Panel IsVisible="{Binding IsLoading}" Background="#80000000" ZIndex="10">
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+            <ProgressBar IsIndeterminate="True" Width="200"/>
+            <TextBlock Text="{Binding StatusMessage}" Foreground="White" HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Panel>
+        
+        <!-- Map display area -->
+        <Panel Name="MapPanel" Background="LightBlue">
+          <!-- This would contain the actual map visualization -->
+          <!-- For now, we'll use a placeholder with instructions -->
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
+            <TextBlock Text="World Map Visualization" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+            <TextBlock Text="Interactive world map showing IP geolocation data" FontSize="16" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding StatusMessage}" FontSize="14" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+            <TextBlock Text="Points plotted: {Binding MapPoints.Count}" FontSize="14" HorizontalAlignment="Center"/>
+            
+            <!-- Legend -->
+            <Border Background="White" BorderBrush="Gray" BorderThickness="1" Padding="10" Margin="0,20,0,0">
+              <StackPanel Spacing="5">
+                <TextBlock Text="Legend:" FontWeight="Bold"/>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Ellipse Fill="Green" Width="12" Height="12" VerticalAlignment="Center"/>
+                  <TextBlock Text="Normal IP" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Ellipse Fill="Red" Width="12" Height="12" VerticalAlignment="Center"/>
+                  <TextBlock Text="Threat IP" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Rectangle Fill="Blue" Width="12" Height="12" VerticalAlignment="Center"/>
+                  <TextBlock Text="Selected IP" VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Panel>
+      </Grid>
+    </Border>
+    
+    <!-- Status Bar -->
+    <Border Grid.Row="2" Background="{DynamicResource SystemAltHighBrush}" Padding="10">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="{Binding MapPoints.Count, StringFormat='{}{0} points'}" 
+                   VerticalAlignment="Center" Margin="20,0,0,0"/>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
