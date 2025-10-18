@@ -58,13 +58,14 @@ jobs:
 
     - name: Publish application
       run: |
-        dotnet publish \
+        dotnet publish "./${{ env.PROJECT_NAME }}.csproj" \
           --configuration Release \
           --runtime ${{ matrix.runtime }} \
           --self-contained true \
-          --output ./publish/${{ matrix.artifact_name }} \
+          --output "./publish/${{ matrix.artifact_name }}" \
           -p:PublishSingleFile=true \
-          -p:PublishTrimmed=false
+          -p:PublishTrimmed=false \
+          -p:IncludeNativeLibrariesForSelfExtract=true
 
     - name: Create archive (Linux/macOS)
       if: matrix.os != 'windows-latest'
@@ -117,7 +118,10 @@ jobs:
         path: ./artifacts
 
     - name: Display artifact structure
-      run: ls -la ./artifacts
+      run: |
+        find ./artifacts -type f | sort
+        echo "=== Directory structure ==="
+        ls -laR ./artifacts
 
     - name: Create Release
       id: create_release
