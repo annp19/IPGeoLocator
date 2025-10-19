@@ -6,8 +6,9 @@ using IPGeoLocator.Models;
 using IPGeoLocator.Services;
 using System;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using System.Globalization;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace IPGeoLocator
 {
@@ -76,6 +77,7 @@ namespace IPGeoLocator
             try
             {
                 var lookups = await _historyService.GetAllLookupsAsync();
+                ResetPagination(); // Reset pagination when loading new data
                 UpdateHistoryDisplay(lookups);
             }
             catch (Exception ex)
@@ -95,6 +97,7 @@ namespace IPGeoLocator
                     ? await _historyService.GetAllLookupsAsync()
                     : await _historyService.SearchLookupsAsync(searchTerm);
                 
+                ResetPagination(); // Reset pagination when searching
                 UpdateHistoryDisplay(lookups);
             }
             catch (Exception ex)
@@ -127,19 +130,73 @@ namespace IPGeoLocator
             }
         }
 
+        // Pagination settings for large datasets to improve UI responsiveness
+        private const int PageSize = 50; // Show 50 records per page
+        private int _currentPage = 0;
+        
         private void UpdateHistoryDisplay(System.Collections.Generic.List<LookupHistory> lookups)
         {
-            _historyItems.Clear();
+            // For large datasets, implement pagination to improve UI responsiveness
+            var totalCount = lookups.Count;
             
-            foreach (var lookup in lookups)
+            // If we have more records than the page size, implement pagination
+            if (totalCount > PageSize)
             {
-                _historyItems.Add(new HistoryItemViewModel(lookup));
+                var startIndex = _currentPage * PageSize;
+                var endIndex = Math.Min(startIndex + PageSize, totalCount);
+                var pageItems = lookups.AsEnumerable().Skip(startIndex).Take(endIndex - startIndex).ToList();
+                
+                _historyItems.Clear();
+                
+                foreach (var lookup in pageItems)
+                {
+                    _historyItems.Add(new HistoryItemViewModel(lookup));
+                }
+                
+                // Update results count with pagination info
+                _resultsCountText.Text = $"{pageItems.Count} records shown (Page {_currentPage + 1} of {(int)Math.Ceiling((double)totalCount / PageSize)})";
             }
-            
-            int count = _historyItems.Count;
-            _resultsCountText.Text = count == 1 
-                ? $"{count} record found" 
-                : $"{count} records found";
+            else
+            {
+                // For smaller datasets, show all items
+                _historyItems.Clear();
+                
+                foreach (var lookup in lookups)
+                {
+                    _historyItems.Add(new HistoryItemViewModel(lookup));
+                }
+                
+                int count = _historyItems.Count;
+                _resultsCountText.Text = count == 1 
+                    ? $"{count} record found" 
+                    : $"{count} records found";
+            }
+        }
+        
+        // Navigation methods for pagination
+        private void NavigateToPreviousPage(System.Collections.Generic.List<LookupHistory> allLookups)
+        {
+            if (_currentPage > 0)
+            {
+                _currentPage--;
+                UpdateHistoryDisplay(allLookups);
+            }
+        }
+        
+        private void NavigateToNextPage(System.Collections.Generic.List<LookupHistory> allLookups)
+        {
+            var totalPages = Math.Ceiling((double)allLookups.Count / PageSize);
+            if (_currentPage < totalPages - 1)
+            {
+                _currentPage++;
+                UpdateHistoryDisplay(allLookups);
+            }
+        }
+        
+        // Reset pagination when loading new data
+        private void ResetPagination()
+        {
+            _currentPage = 0;
         }
 
         private void OnItemDoubleTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)

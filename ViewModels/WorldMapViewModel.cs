@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using ScottPlot;
 
@@ -74,6 +76,11 @@ namespace IPGeoLocator.ViewModels
             return true;
         }
 
+        // Cache for map points to avoid recomputing on every load
+        private static readonly Dictionary<string, (List<MapPoint> points, DateTime timestamp)> _mapPointsCache = new();
+        private static readonly TimeSpan MapCacheExpiration = TimeSpan.FromMinutes(10); // Cache for 10 minutes
+        private static readonly int MaxMapCacheSize = 100; // Limit cache size to prevent memory leaks
+
         public async Task LoadMapDataAsync(List<IpLocation> locations)
         {
             IsLoading = true;
@@ -81,6 +88,19 @@ namespace IPGeoLocator.ViewModels
 
             try
             {
+                // Generate cache key based on locations
+                var cacheKey = string.Join(",", locations.AsEnumerable().Select(l => l.IpAddress).OrderBy(ip => ip));
+                
+                // Check cache with expiration
+                if (_mapPointsCache.TryGetValue(cacheKey, out var cached) && 
+                    DateTime.Now - cached.timestamp < MapCacheExpiration)
+                {
+                    MapPoints = cached.points;
+                    UpdateMapBounds(cached.points);
+                    StatusMessage = $"Loaded {cached.points.Count} IP locations from cache";
+                    return;
+                }
+
                 var points = new List<MapPoint>();
                 
                 foreach (var location in locations)
@@ -102,6 +122,16 @@ namespace IPGeoLocator.ViewModels
 
                 MapPoints = points;
                 UpdateMapBounds(points);
+                
+                // Add to cache with size limit to prevent memory leaks
+                if (_mapPointsCache.Count >= MaxMapCacheSize)
+                {
+                    // Remove oldest entry
+                    var oldestKey = _mapPointsCache.AsEnumerable().OrderBy(kvp => kvp.Value.timestamp).First().Key;
+                    _mapPointsCache.Remove(oldestKey);
+                }
+                
+                _mapPointsCache[cacheKey] = (points, DateTime.Now);
                 StatusMessage = $"Loaded {points.Count} IP locations on the map";
             }
             catch (Exception ex)

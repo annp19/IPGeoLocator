@@ -55,13 +55,85 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private readonly LookupHistoryService _historyService;
     private readonly PerformanceService _performanceService;
 
-    // In-memory caches for performance with expiration
+    // In-memory caches for performance with expiration and automatic cleanup
     private static readonly Dictionary<string, (GeolocationResponse? response, DateTime timestamp)> _geoCache = new();
     private static readonly Dictionary<string, (Bitmap? bitmap, DateTime timestamp)> _flagCache = new();
     // In-memory cache for local time lookups (key: lat,lon,timezone)
     private static readonly Dictionary<string, (string time, DateTime timestamp)> _localTimeCache = new();
-    // Cache expiration time (1 hour)
-    private static readonly TimeSpan CacheExpiration = TimeSpan.FromHours(1);
+    // Cache expiration time (15 minutes for more responsive threat intelligence)
+    private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(15);
+    // Maximum cache size to prevent memory leaks
+    private static readonly int MaxCacheSize = 1000;
+
+    // Method to clean up expired cache entries to prevent memory leaks
+    private static void CleanupExpiredCacheEntries()
+    {
+        var now = DateTime.Now;
+        
+        // Clean up expired geolocation cache entries
+        var expiredGeoKeys = _geoCache.Where(kvp => now - kvp.Value.timestamp > CacheExpiration)
+                                      .Select(kvp => kvp.Key)
+                                      .ToList();
+        foreach (var key in expiredGeoKeys)
+        {
+            _geoCache.Remove(key);
+        }
+        
+        // Clean up expired flag cache entries and dispose bitmaps
+        var expiredFlagKeys = _flagCache.Where(kvp => now - kvp.Value.timestamp > CacheExpiration)
+                                        .Select(kvp => kvp.Key)
+                                        .ToList();
+        foreach (var key in expiredFlagKeys)
+        {
+            // Dispose bitmap to prevent memory leaks
+            if (_flagCache[key].bitmap != null)
+            {
+                try
+                {
+                    _flagCache[key].bitmap.Dispose();
+                }
+                catch
+                {
+                    // Ignore disposal errors
+                }
+            }
+            _flagCache.Remove(key);
+        }
+        
+        // Clean up expired local time cache entries
+        var expiredTimeKeys = _localTimeCache.Where(kvp => now - kvp.Value.timestamp > CacheExpiration)
+                                             .Select(kvp => kvp.Key)
+                                             .ToList();
+        foreach (var key in expiredTimeKeys)
+        {
+            _localTimeCache.Remove(key);
+        }
+    }
+    
+    // Method to dispose all cached bitmaps to prevent memory leaks
+    public static void DisposeCachedResources()
+    {
+        // Dispose all cached bitmaps
+        foreach (var kvp in _flagCache)
+        {
+            if (kvp.Value.bitmap != null)
+            {
+                try
+                {
+                    kvp.Value.bitmap.Dispose();
+                }
+                catch
+                {
+                    // Ignore disposal errors
+                }
+            }
+        }
+        
+        // Clear all caches
+        _geoCache.Clear();
+        _flagCache.Clear();
+        _localTimeCache.Clear();
+    }
 
     // Threat info properties
     private string _threatInfo = "N/A";
@@ -518,12 +590,24 @@ public async Task LookupIpCommand()
         if (_geoCache.TryGetValue(ip, out var cached) && DateTime.Now - cached.timestamp < CacheExpiration)
             return cached.response;
 
+        // Clean up expired cache entries to prevent memory leaks
+        CleanupExpiredCacheEntries();
+
         try
         {
             var response = await HttpClient.GetAsync($"http://ip-api.com/json/{ip}", token).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<GeolocationResponse>(json);
+            
+            // Limit cache size to prevent memory leaks
+            if (_geoCache.Count >= MaxCacheSize)
+            {
+                // Remove oldest entry
+                var oldestKey = _geoCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+                _geoCache.Remove(oldestKey);
+            }
+            
             _geoCache[ip] = (result, DateTime.Now);
             return result;
         }
@@ -545,10 +629,22 @@ public async Task LookupIpCommand()
             cached.bitmap != null)
             return cached.bitmap;
             
+        // Clean up expired cache entries to prevent memory leaks
+        CleanupExpiredCacheEntries();
+
         try
         {
             var data = await HttpClient.GetByteArrayAsync($"https://flagcdn.com/32x24/{countryCode.ToLower()}.png", token).ConfigureAwait(false);
             var bmp = new Bitmap(new MemoryStream(data));
+            
+            // Limit cache size to prevent memory leaks
+            if (_flagCache.Count >= MaxCacheSize)
+            {
+                // Remove oldest entry
+                var oldestKey = _flagCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+                _flagCache.Remove(oldestKey);
+            }
+            
             _flagCache[countryCode] = (bmp, DateTime.Now);
             return bmp;
         }
@@ -778,6 +874,9 @@ public async Task LookupIpCommand()
         if (_localTimeCache.TryGetValue(cacheKey, out var cached) && DateTime.Now - cached.timestamp < CacheExpiration)
             return cached.time;
 
+        // Clean up expired cache entries to prevent memory leaks
+        CleanupExpiredCacheEntries();
+
         // Create cancellation token with shorter timeout for faster response
         using var localCts = CancellationTokenSource.CreateLinkedTokenSource(token);
         localCts.CancelAfter(TimeSpan.FromSeconds(3)); // Shorter timeout for better UX
@@ -842,6 +941,14 @@ public async Task LookupIpCommand()
                 var (ok, result) = await finished.ConfigureAwait(false);
                 if (ok && !string.IsNullOrWhiteSpace(result))
                 {
+                    // Limit cache size to prevent memory leaks
+                    if (_localTimeCache.Count >= MaxCacheSize)
+                    {
+                        // Remove oldest entry
+                        var oldestKey = _localTimeCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+                        _localTimeCache.Remove(oldestKey);
+                    }
+                    
                     _localTimeCache[cacheKey] = (result, DateTime.Now);
                     return result;
                 }
@@ -855,6 +962,15 @@ public async Task LookupIpCommand()
 
         // Last fallback: system UTC time
         var utcNow = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC (local time unavailable)";
+        
+        // Limit cache size to prevent memory leaks
+        if (_localTimeCache.Count >= MaxCacheSize)
+        {
+            // Remove oldest entry
+            var oldestKey = _localTimeCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+            _localTimeCache.Remove(oldestKey);
+        }
+        
         _localTimeCache[cacheKey] = (utcNow, DateTime.Now);
         return utcNow;
     }
@@ -940,6 +1056,7 @@ public async Task LookupIpCommand()
     protected override void OnClosed(EventArgs e)
     {
         _dbContext?.Dispose();
+        DisposeCachedResources(); // Clean up cached resources to prevent memory leaks
         base.OnClosed(e);
     }
 

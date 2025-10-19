@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace IPGeoLocator.Services
@@ -247,6 +249,9 @@ namespace IPGeoLocator.Services
         public async Task<AggregateThreatResult> GetAggregatedThreatInfoAsync(string ipAddress, ThreatIntelSettings settings)
         {
             var tasks = new List<Task<ThreatIntelResult>>();
+            
+            // Use a cancellation token with a reasonable timeout to prevent blocking
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)); // 10-second timeout for all threat checks
 
             if (settings.EnableAbuseIPDB)
                 tasks.Add(GetAbuseIpDbInfoAsync(ipAddress, settings.AbuseIPDBApiKey));
@@ -263,8 +268,27 @@ namespace IPGeoLocator.Services
             if (settings.EnableShodan)
                 tasks.Add(GetShodanInfoAsync(ipAddress, settings.ShodanApiKey));
 
-            var results = await Task.WhenAll(tasks);
-            return CalculateAggregateScore(results);
+            try
+            {
+                // Use WhenAll with timeout to prevent blocking on slow services
+                var results = await Task.WhenAll(tasks).WaitAsync(cts.Token);
+                return CalculateAggregateScore(results);
+            }
+            catch (OperationCanceledException)
+            {
+                // Timeout occurred - return partial results from completed tasks
+                var completedResults = tasks
+                    .Where(t => t.IsCompletedSuccessfully)
+                    .Select(t => t.Result)
+                    .ToArray();
+                
+                return CalculateAggregateScore(completedResults);
+            }
+            catch (Exception)
+            {
+                // Other error - return empty results
+                return CalculateAggregateScore(Array.Empty<ThreatIntelResult>());
+            }
         }
 
         private AggregateThreatResult CalculateAggregateScore(ThreatIntelResult[] results)

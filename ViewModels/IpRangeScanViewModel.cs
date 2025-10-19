@@ -270,8 +270,11 @@ namespace IPGeoLocator.ViewModels
 
         private async Task ProcessIpRangeAsync(List<string> ipList, Func<string, Task<IpScanResult>> scanFunction, CancellationToken cancellationToken)
         {
-            var semaphore = new SemaphoreSlim(ConcurrentScans, ConcurrentScans);
+            var semaphore = new SemaphoreSlim(Math.Min(ConcurrentScans, 50), Math.Min(ConcurrentScans, 50)); // Limit to max 50 concurrent scans
             var tasks = new List<Task>();
+            
+            // Rate limiting to prevent overwhelming the system
+            var rateLimitDelay = TimeSpan.FromMilliseconds(50); // 50ms delay between requests
 
             foreach (var ip in ipList)
             {
@@ -316,6 +319,9 @@ namespace IPGeoLocator.ViewModels
                 }, cancellationToken);
 
                 tasks.Add(task);
+                
+                // Apply rate limiting to prevent overwhelming the system
+                await Task.Delay(rateLimitDelay, cancellationToken);
             }
 
             // Wait for all tasks to complete
