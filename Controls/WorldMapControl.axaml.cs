@@ -1,9 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using ScottPlot;
 using ScottPlot.Avalonia;
 using IPGeoLocator.ViewModels;
@@ -15,7 +12,7 @@ namespace IPGeoLocator.Controls
 {
     public partial class WorldMapControl : UserControl
     {
-        private AvaPlot _plot;
+        private AvaPlot? _plot;
         
         public WorldMapControl()
         {

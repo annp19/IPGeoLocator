@@ -5,6 +5,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <NoWarn>$(NoWarn);CS0436;CS8892</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

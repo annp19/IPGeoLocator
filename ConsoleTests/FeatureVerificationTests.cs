@@ -10,7 +10,7 @@ namespace IPGeoLocator.Tests
     /// <summary>
     /// Comprehensive test suite to verify all implemented features
     /// </summary>
-    public class FeatureVerificationTests
+    public class ConsoleFeatureVerificationTests
     {
         public async Task RunAllTests()
         {

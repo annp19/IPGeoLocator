@@ -13,7 +13,7 @@ namespace IPGeoLocator.ConsoleTests
             
             try
             {
-                var tests = new FeatureVerificationTests();
+                var tests = new ConsoleFeatureVerificationTests();
                 await tests.RunAllTests();
                 
                 Console.WriteLine("\n🎉 All tests completed successfully!");

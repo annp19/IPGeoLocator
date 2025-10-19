@@ -16,13 +16,13 @@ namespace IPGeoLocator
     {
         private readonly LookupHistoryService _historyService;
         private ObservableCollection<HistoryItemViewModel> _historyItems;
-        private DataGrid _dataGrid;
-        private TextBox _searchBox;
-        private Button _searchButton;
-        private Button _refreshButton;
-        private Button _clearButton;
-        private Button _closeButton;
-        private TextBlock _resultsCountText;
+        private DataGrid? _dataGrid;
+        private TextBox? _searchBox;
+        private Button? _searchButton;
+        private Button? _refreshButton;
+        private Button? _clearButton;
+        private Button? _closeButton;
+        private TextBlock? _resultsCountText;
 
         public HistoryWindow(LookupHistoryService historyService)
         {

@@ -95,9 +95,9 @@ namespace IPGeoLocator.ViewModels
         private System.Windows.Input.ICommand? _cancelScanCommand;
         private System.Windows.Input.ICommand? _exportResultsCommand;
 
-        public System.Windows.Input.ICommand StartScanCommand => _startScanCommand ??= new AsyncCommand(StartScanAsync, () => !IsScanning);
-        public System.Windows.Input.ICommand CancelScanCommand => _cancelScanCommand ??= new RelayCommand(CancelScan, () => IsScanning);
-        public System.Windows.Input.ICommand ExportResultsCommand => _exportResultsCommand ??= new RelayCommand(ExportResults, () => ScanResults.Count > 0);
+        public System.Windows.Input.ICommand? StartScanCommand => _startScanCommand ??= new AsyncCommand(StartScanAsync, () => !IsScanning);
+        public System.Windows.Input.ICommand? CancelScanCommand => _cancelScanCommand ??= new RelayCommand(CancelScan, () => IsScanning);
+        public System.Windows.Input.ICommand? ExportResultsCommand => _exportResultsCommand ??= new RelayCommand(ExportResults, () => ScanResults.Count > 0);
 
         private CancellationTokenSource? _cancellationTokenSource;
 
@@ -145,7 +145,7 @@ namespace IPGeoLocator.ViewModels
                 _canExecute = canExecute ?? (() => true);
             }
 
-            public event EventHandler CanExecuteChanged;
+            public event EventHandler? CanExecuteChanged;
 
             public bool CanExecute(object parameter) => _canExecute();
             
@@ -171,7 +171,7 @@ namespace IPGeoLocator.ViewModels
                 _canExecute = canExecute ?? (() => true);
             }
 
-            public event EventHandler CanExecuteChanged;
+            public event EventHandler? CanExecuteChanged;
 
             public bool CanExecute(object parameter) => _canExecute();
             public void Execute(object parameter) => _execute();
