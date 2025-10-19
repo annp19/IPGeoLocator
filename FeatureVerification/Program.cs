@@ -126,7 +126,16 @@ namespace IPGeoLocator.FeatureVerification
             };
             
             // Test loading map data
-            await viewModel.LoadMapDataAsync(testPoints);
+            var ipLocations = testPoints.Select(mp => new IpLocation
+            {
+                Latitude = mp.Latitude,
+                Longitude = mp.Longitude,
+                IpAddress = mp.IpAddress,
+                Country = mp.Country,
+                City = mp.City,
+                ThreatScore = mp.ThreatScore
+            }).ToList();
+            await viewModel.LoadMapDataAsync(ipLocations);
             Console.WriteLine($"   ✓ Loaded {viewModel.MapPoints.Count} map points");
             
             Console.WriteLine("   ✅ World Map Visualization tests passed");
