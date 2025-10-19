@@ -1128,12 +1128,9 @@ public async Task ShowWorldMapCommand()
 {
     try
     {
-        // In a real implementation, this would open the world map window
-        // For now, we'll just show a status message
-        SetStatus("World map visualization would open here", isSuccess: true);
-        
-        // Simulate opening the map window
-        await Task.Delay(500);
+        // Open the world map window
+        var worldMapWindow = new WorldMapWindow();
+        await worldMapWindow.ShowDialog(this);
     }
     catch (Exception ex)
     {
@@ -1154,12 +1151,24 @@ public async Task ExportToWorldMapCommand()
 
     try
     {
-        // In a real implementation, this would export to a world map format
-        // For now, we'll just show a status message
-        SetStatus("Results would be exported to world map format", isSuccess: true);
+        // Create a location from the current geolocation result
+        var location = new IpLocation
+        {
+            IpAddress = GeolocationResult.Query,
+            Latitude = GeolocationResult.Lat,
+            Longitude = GeolocationResult.Lon,
+            Country = GeolocationResult.Country,
+            City = GeolocationResult.City,
+            Isp = GeolocationResult.Isp,
+            ThreatScore = ThreatScore
+        };
         
-        // Simulate export process
-        await Task.Delay(500);
+        // Open the world map window and add this location
+        var worldMapWindow = new WorldMapWindow();
+        worldMapWindow.AddIpLocation(location);
+        await worldMapWindow.ShowDialog(this);
+        
+        SetStatus("Results exported to world map", isSuccess: true);
     }
     catch (Exception ex)
     {

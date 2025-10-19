@@ -5,6 +5,10 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IPGeoLocator", "IPGeoLocator.csproj", "{6A18CF3C-E079-45CF-8C9E-3DA36BB63EEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTests", "ConsoleTests\ConsoleTests.csproj", "{D622374D-0B87-4620-9DF1-2E6B1346F8AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeatureVerification", "FeatureVerification\FeatureVerification.csproj", "{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,13 @@ Global
 		{6A18CF3C-E079-45CF-8C9E-3DA36BB63EEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A18CF3C-E079-45CF-8C9E-3DA36BB63EEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6A18CF3C-E079-45CF-8C9E-3DA36BB63EEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D622374D-0B87-4620-9DF1-2E6B1346F8AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D622374D-0B87-4620-9DF1-2E6B1346F8AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D622374D-0B87-4620-9DF1-2E6B1346F8AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D622374D-0B87-4620-9DF1-2E6B1346F8AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
