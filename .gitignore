@@ -196,7 +196,7 @@ node_modules/
 .AppleDouble
 .LSOverride
 
-# Icon must end with two \\r
+# Icon must end with two \r
 Icon
 
 # Thumbnails
@@ -206,8 +206,8 @@ Icon
 .DocumentRevisions-V100
 .fseventsd
 .Spotlight-V100
-.TemporaryItems
 .Trashes
+.TemporaryItems
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 
@@ -256,7 +256,7 @@ pids/
 .env
 .venv
 env/
-venv/
+virtualenv/
 
 # Vagrant
 .vagrant/
@@ -333,3 +333,6 @@ secrets.json
 # Test publish directories
 test-publish/
 publish/
+
+IMPLEMENTATION_SUMMARY.md
+FINAL_IMPLEMENTATION_SUMMARY.md
