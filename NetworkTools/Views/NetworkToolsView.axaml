@@ -1,0 +1,239 @@
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:IPGeoLocator.NetworkTools.ViewModels"
+             x:Class="IPGeoLocator.NetworkTools.Views.NetworkToolsView"
+             x:DataType="vm:NetworkToolsViewModel">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Toolbar -->
+    <Border Grid.Row="0" Classes="Card" Margin="10">
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="10">
+        <TextBlock Text="Network Tools" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+        <Button Name="RefreshButton" Content="Refresh" Command="{Binding RefreshCommand}" Margin="20,0,0,0"/>
+        <Button Name="ExportButton" Content="Export Results" Command="{Binding ExportResultsCommand}"/>
+        <Button Name="ClearButton" Content="Clear" Command="{Binding ClearResultsCommand}"/>
+      </StackPanel>
+    </Border>
+    
+    <!-- Tab Control for Different Tools -->
+    <TabControl Grid.Row="1" Margin="10,0,10,10">
+      <!-- Port Scanner Tab -->
+      <TabItem Header="Port Scanner">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Target IP/Hostname:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding TargetIp}" Watermark="e.g., 192.168.1.1 or google.com" Width="200"/>
+            <TextBlock Text="Port Range:" VerticalAlignment="Center"/>
+            <NumericUpDown Value="{Binding StartPort}" Minimum="1" Maximum="65535" Width="80"/>
+            <TextBlock Text="-" VerticalAlignment="Center"/>
+            <NumericUpDown Value="{Binding EndPort}" Minimum="1" Maximum="65535" Width="80"/>
+            <Button Content="Scan" Command="{Binding ScanPortsCommand}" Classes="accent"/>
+          </StackPanel>
+          
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Max Concurrent Connections:" VerticalAlignment="Center"/>
+            <NumericUpDown Value="{Binding MaxConcurrency}" Minimum="1" Maximum="1000" Width="80"/>
+            <TextBlock Text="Timeout (ms):" VerticalAlignment="Center"/>
+            <NumericUpDown Value="{Binding TimeoutMs}" Minimum="100" Maximum="10000" Width="80"/>
+            <ProgressBar IsVisible="{Binding IsScanningPorts}" Value="{Binding PortScanProgress}" IsIndeterminate="False" Width="100" Height="20"/>
+          </StackPanel>
+          
+          <DataGrid Grid.Row="2" 
+                    ItemsSource="{Binding PortScanResults}"
+                    Margin="0,10,0,0"
+                    AutoGenerateColumns="False"
+                    HeadersVisibility="All"
+                    SelectionMode="Single">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="80"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+              <DataGridTextColumn Header="Service" Binding="{Binding Service}" Width="150"/>
+              <DataGridTextColumn Header="Response Time (ms)" Binding="{Binding ResponseTimeMs}" Width="120"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
+      
+      <!-- Ping Tab -->
+      <TabItem Header="Ping">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Target IP/Hostname:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding PingTarget}" Watermark="e.g., 8.8.8.8 or google.com" Width="200"/>
+            <TextBlock Text="Count:" VerticalAlignment="Center"/>
+            <NumericUpDown Value="{Binding PingCount}" Minimum="1" Maximum="100" Width="60"/>
+            <Button Content="Ping" Command="{Binding PingCommand}" Classes="accent"/>
+          </StackPanel>
+          
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="{Binding PingStatus}" FontWeight="Medium"/>
+            <ProgressBar IsVisible="{Binding IsPinging}" IsIndeterminate="True" Width="100" Height="20"/>
+          </StackPanel>
+          
+          <DataGrid Grid.Row="2" 
+                    ItemsSource="{Binding PingResults}"
+                    Margin="0,10,0,0"
+                    AutoGenerateColumns="False"
+                    HeadersVisibility="All"
+                    SelectionMode="Single">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Sequence" Binding="{Binding Sequence}" Width="80"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+              <DataGridTextColumn Header="Round Trip Time (ms)" Binding="{Binding RoundTripTimeMs}" Width="150"/>
+              <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="150"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
+      
+      <!-- Traceroute Tab -->
+      <TabItem Header="Traceroute">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Target IP/Hostname:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding TraceTarget}" Watermark="e.g., 8.8.8.8 or google.com" Width="200"/>
+            <TextBlock Text="Max Hops:" VerticalAlignment="Center"/>
+            <NumericUpDown Value="{Binding MaxHops}" Minimum="1" Maximum="100" Width="60"/>
+            <Button Content="Trace" Command="{Binding TraceRouteCommand}" Classes="accent"/>
+          </StackPanel>
+          
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="{Binding TraceStatus}" FontWeight="Medium"/>
+            <ProgressBar IsVisible="{Binding IsTracing}" Value="{Binding TraceProgress}" IsIndeterminate="False" Width="100" Height="20"/>
+          </StackPanel>
+          
+          <DataGrid Grid.Row="2" 
+                    ItemsSource="{Binding TracerouteResult.Hops}"
+                    Margin="0,10,0,0"
+                    AutoGenerateColumns="False"
+                    HeadersVisibility="All"
+                    SelectionMode="Single">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Hop #" Binding="{Binding HopNumber}" Width="60"/>
+              <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="150"/>
+              <DataGridTextColumn Header="RTT (ms)" Binding="{Binding RoundTripTimeMs}" Width="80"/>
+              <DataGridTextColumn Header="Status" Binding="{Binding StatusMessage}" Width="200"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
+      
+      <!-- Subnet Calculator Tab -->
+      <TabItem Header="Subnet Calculator">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="IP Address:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding SubnetIpAddress}" Watermark="e.g., 192.168.1.1" Width="150"/>
+            <TextBlock Text="Subnet Mask/CIDR:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding SubnetMask}" Watermark="e.g., 255.255.255.0 or /24" Width="150"/>
+            <Button Content="Calculate" Command="{Binding CalculateSubnetCommand}" Classes="accent"/>
+          </StackPanel>
+          
+          <StackPanel Grid.Row="1" Orientation="Vertical" Spacing="5" Margin="0,0,0,10">
+            <TextBlock Text="{Binding SubnetStatus}" FontWeight="Medium"/>
+            <ProgressBar IsVisible="{Binding IsCalculatingSubnet}" IsIndeterminate="True" Width="100" Height="20"/>
+          </StackPanel>
+          
+          <Grid Grid.Row="2" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,10,0,0">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Network Address:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SubnetInfo.NetworkAddress}"/>
+            
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Broadcast Address:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SubnetInfo.BroadcastAddress}"/>
+            
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Subnet Mask:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SubnetInfo.SubnetMask}"/>
+            
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="CIDR Notation:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SubnetInfo.Cidr}"/>
+            
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Host Count:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SubnetInfo.HostCount}"/>
+            
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Wildcard Mask:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SubnetInfo.WildcardMask}"/>
+            
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Network Class:" FontWeight="Bold"/>
+            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SubnetInfo.NetworkClass}"/>
+            
+            <TextBlock Grid.Row="7" Grid.Column="0" Text="Usable IP Range:" FontWeight="Bold"/>
+            <ItemsControl Grid.Row="7" Grid.Column="1" ItemsSource="{Binding SubnetInfo.UsableIpRange}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="5"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" Margin="0,0,5,0"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </Grid>
+      </TabItem>
+      
+      <!-- WHOIS Tab -->
+      <TabItem Header="WHOIS">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Domain/IP:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding WhoisTarget}" Watermark="e.g., google.com or 8.8.8.8" Width="200"/>
+            <Button Content="Lookup" Command="{Binding LookupWhoisCommand}" Classes="accent"/>
+          </StackPanel>
+          
+          <StackPanel Grid.Row="1" Orientation="Vertical" Spacing="5" Margin="0,0,0,10">
+            <TextBlock Text="{Binding WhoisStatus}" FontWeight="Medium"/>
+            <ProgressBar IsVisible="{Binding IsLookingUpWhois}" IsIndeterminate="True" Width="100" Height="20"/>
+          </StackPanel>
+          
+          <ScrollViewer Grid.Row="2" Margin="0,10,0,0">
+            <TextBlock Text="{Binding WhoisResult.RawData}" TextWrapping="Wrap"/>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+      
+      <!-- DNS Lookup Tab -->
+      <TabItem Header="DNS Lookup">
+        <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
+            <TextBlock Text="Domain/IP:" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding DnsTarget}" Watermark="e.g., google.com or 8.8.8.8" Width="200"/>
+            <TextBlock Text="Record Type:" VerticalAlignment="Center"/>
+            <ComboBox ItemsSource="{Binding DnsRecordTypes}" SelectedItem="{Binding DnsRecordType}" Width="100">
+            </ComboBox>
+            <Button Content="Lookup" Command="{Binding LookupDnsCommand}" Classes="accent"/>
+          </StackPanel>
+          
+          <StackPanel Grid.Row="1" Orientation="Vertical" Spacing="5" Margin="0,0,0,10">
+            <TextBlock Text="{Binding DnsStatus}" FontWeight="Medium"/>
+            <ProgressBar IsVisible="{Binding IsLookingUpDns}" IsIndeterminate="True" Width="100" Height="20"/>
+          </StackPanel>
+          
+          <DataGrid Grid.Row="2" 
+                    ItemsSource="{Binding DnsResult.Records}"
+                    Margin="0,10,0,0"
+                    AutoGenerateColumns="False"
+                    HeadersVisibility="All"
+                    SelectionMode="Single">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80"/>
+              <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
+              <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+              <DataGridTextColumn Header="TTL" Binding="{Binding Ttl}" Width="80"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
+    </TabControl>
+    
+    <!-- Status Bar -->
+    <Border Grid.Row="2" Background="{DynamicResource SystemAltHighBrush}" Padding="10">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="{Binding LookupDuration}" 
+                   VerticalAlignment="Center" Margin="20,0,0,0"/>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

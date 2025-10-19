@@ -1,0 +1,44 @@
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:IPGeoLocator.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="IPGeoLocator.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <!-- Search and Controls Panel -->
+    <Border Grid.Row="0" Classes="Card" Margin="10">
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="10">
+        <TextBox Name="SearchBox" Text="{Binding SearchTerm}" Watermark="Search history..." Width="300" VerticalAlignment="Center"/>
+        <Button Name="SearchButton" Content="Search" Command="{Binding SearchHistoryCommand}" Classes="accent" VerticalAlignment="Center"/>
+        <Button Name="RefreshButton" Content="Refresh" Command="{Binding RefreshHistoryCommand}" VerticalAlignment="Center" Margin="5,0"/>
+        <Button Name="ClearButton" Content="Clear All" Command="{Binding ClearHistoryCommand}" VerticalAlignment="Center"/>
+      </StackPanel>
+    </Border>
+    
+    <!-- Results Count -->
+    <Border Grid.Row="1" Background="{DynamicResource SystemAltHighBrush}" Margin="10,0,10,0" Padding="10">
+      <TextBlock Name="ResultsCountText" Text="{Binding ResultsCountText}" FontWeight="Medium"/>
+    </Border>
+    
+    <!-- History List -->
+    <DataGrid Grid.Row="2" 
+              Name="HistoryDataGrid"
+              ItemsSource="{Binding HistoryItems}"
+              Margin="10,5,10,10"
+              AutoGenerateColumns="False"
+              HeadersVisibility="All"
+              SelectionMode="Single">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="120"/>
+        <DataGridTextColumn Header="Location" Binding="{Binding CityAndCountry}" Width="150"/>
+        <DataGridTextColumn Header="ISP" Binding="{Binding Isp}" Width="150"/>
+        <DataGridTextColumn Header="Threat Score" Binding="{Binding ThreatScoreDisplay}" Width="80"/>
+        <DataGridTextColumn Header="Date" Binding="{Binding LookupTimeDisplay}" Width="120"/>
+        <DataGridTextColumn Header="Duration" Binding="{Binding LookupDuration}" Width="100"/>
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

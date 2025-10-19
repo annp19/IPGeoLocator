@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using IPGeoLocator.ViewModels;
+using IPGeoLocator.Controls;
 using System;
 using System.Collections.Generic;
 
@@ -16,11 +17,33 @@ namespace IPGeoLocator.Views
             InitializeComponent();
             _viewModel = new WorldMapViewModel();
             DataContext = _viewModel;
+            
+            // Subscribe to property changes to update the map visualization
+            _viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == nameof(_viewModel.MapPoints) || 
+                    e.PropertyName == nameof(_viewModel.ShowOnlyThreats))
+                {
+                    UpdateMapVisualization();
+                }
+            };
+            
+            // Initial map update
+            UpdateMapVisualization();
         }
 
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+        
+        public void UpdateMapVisualization()
+        {
+            var worldMapControl = this.FindControl<WorldMapControl>("WorldMapControl");
+            if (worldMapControl != null && _viewModel != null)
+            {
+                worldMapControl.UpdateMap(_viewModel.MapPoints, _viewModel.ShowOnlyThreats);
+            }
         }
 
         // Method to load IP location data onto the map

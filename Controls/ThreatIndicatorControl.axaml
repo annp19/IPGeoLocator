@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="IPGeoLocator.Controls.ThreatIndicatorControl">
+  <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+    <Ellipse Name="ThreatLevelIndicator" 
+             Width="16" 
+             Height="16" 
+             VerticalAlignment="Center"
+             Margin="0,0,8,0"/>
+    <TextBlock Name="ThreatLevelText" 
+               VerticalAlignment="Center"
+               Text="Low Risk"/>
+  </Grid>
+</UserControl>

@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:IPGeoLocator.ViewModels"
+        xmlns:local="clr-namespace:IPGeoLocator.Controls"
         x:Class="IPGeoLocator.Views.WorldMapView"
         Title="World Map Visualization"
         Width="1000" Height="700"
@@ -31,36 +32,8 @@
           </StackPanel>
         </Panel>
         
-        <!-- Map display area -->
-        <Panel Name="MapPanel" Background="LightBlue">
-          <!-- This would contain the actual map visualization -->
-          <!-- For now, we'll use a placeholder with instructions -->
-          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-            <TextBlock Text="World Map Visualization" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
-            <TextBlock Text="Interactive world map showing IP geolocation data" FontSize="16" HorizontalAlignment="Center"/>
-            <TextBlock Text="{Binding StatusMessage}" FontSize="14" HorizontalAlignment="Center" Margin="0,20,0,0"/>
-            <TextBlock Text="Points plotted: {Binding MapPoints.Count}" FontSize="14" HorizontalAlignment="Center"/>
-            
-            <!-- Legend -->
-            <Border Background="White" BorderBrush="Gray" BorderThickness="1" Padding="10" Margin="0,20,0,0">
-              <StackPanel Spacing="5">
-                <TextBlock Text="Legend:" FontWeight="Bold"/>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Ellipse Fill="Green" Width="12" Height="12" VerticalAlignment="Center"/>
-                  <TextBlock Text="Normal IP" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Ellipse Fill="Red" Width="12" Height="12" VerticalAlignment="Center"/>
-                  <TextBlock Text="Threat IP" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                  <Rectangle Fill="Blue" Width="12" Height="12" VerticalAlignment="Center"/>
-                  <TextBlock Text="Selected IP" VerticalAlignment="Center"/>
-                </StackPanel>
-              </StackPanel>
-            </Border>
-          </StackPanel>
-        </Panel>
+        <!-- Map display area using the custom control -->
+        <local:WorldMapControl Name="WorldMapControl"/>
       </Grid>
     </Border>
     

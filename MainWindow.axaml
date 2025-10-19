@@ -3,6 +3,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:local="clr-namespace:IPGeoLocator"
+  xmlns:controls="clr-namespace:IPGeoLocator.Controls"
   mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="650"
   x:Class="IPGeoLocator.MainWindow"
   Title="IP Geolocation Tool"
@@ -77,7 +78,10 @@
               <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding LocalTime}"/>
 
               <TextBlock Grid.Row="6" Grid.Column="0" Text="{Binding Locale[ThreatIntelLabel]}" FontWeight="Bold"/>
-              <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ThreatInfo}" Foreground="{Binding StatusBrush}"/>
+              <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                <controls:ThreatIndicatorControl ThreatScore="{Binding ThreatScore}" Width="150"/>
+                <TextBlock Text="{Binding ThreatInfo}" Foreground="{Binding StatusBrush}" VerticalAlignment="Center"/>
+              </StackPanel>
               <TextBlock Text="Threat Score:" Grid.Row="7" Grid.Column="0" FontWeight="Bold"/>
               <TextBlock Text="{Binding ThreatScore}" Grid.Row="7" Grid.Column="1"/>
               <TextBlock Text="AbuseIPDB:" Grid.Row="8" Grid.Column="0" FontWeight="Bold"/>
@@ -93,6 +97,14 @@
               <Button Name="CopyCoordsButton" Content="{Binding Locale[CopyCoordsButton]}" Command="{Binding CopyCoordsCommand}"/>
               <Button Name="ExportButton" Content="Export Results" Command="{Binding ExportResultsCommand}" Classes="accent" Margin="8,0,0,0"/>
             </StackPanel>
+            
+            <!-- Threat Visualization Chart -->
+            <Border Classes="Card" Margin="0,10,0,0" IsVisible="{Binding IsResultVisible}">
+              <StackPanel>
+                <TextBlock Text="Threat Intelligence Visualization" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <controls:ThreatVisualizationControl Name="ThreatVisualization" Height="200"/>
+              </StackPanel>
+            </Border>
             
             <!-- New Feature Buttons -->
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">

@@ -5,6 +5,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using IPGeoLocator.Models;
 
 namespace IPGeoLocator.ViewModels
 {
@@ -87,6 +88,98 @@ namespace IPGeoLocator.ViewModels
             field = value;
             OnPropertyChanged(propertyName);
             return true;
+        }
+
+        // Commands for the UI
+        private System.Windows.Input.ICommand? _startScanCommand;
+        private System.Windows.Input.ICommand? _cancelScanCommand;
+        private System.Windows.Input.ICommand? _exportResultsCommand;
+
+        public System.Windows.Input.ICommand StartScanCommand => _startScanCommand ??= new AsyncCommand(StartScanAsync, () => !IsScanning);
+        public System.Windows.Input.ICommand CancelScanCommand => _cancelScanCommand ??= new RelayCommand(CancelScan, () => IsScanning);
+        public System.Windows.Input.ICommand ExportResultsCommand => _exportResultsCommand ??= new RelayCommand(ExportResults, () => ScanResults.Count > 0);
+
+        private CancellationTokenSource? _cancellationTokenSource;
+
+        private async Task StartScanAsync()
+        {
+            // We'll call the full scan method with a placeholder function
+            // This will be replaced by the actual implementation when integrated with MainWindow
+            _cancellationTokenSource = new CancellationTokenSource();
+            
+            await StartScanAsync(async (ip) => 
+            {
+                // Placeholder implementation - this would call the actual geolocation API
+                await Task.Delay(50, _cancellationTokenSource.Token); // Simulate network delay
+                
+                return new IpScanResult
+                {
+                    IpAddress = ip,
+                    Status = "Success",
+                    Country = "United States",
+                    City = "New York",
+                    Isp = "Example ISP",
+                    ThreatScore = new Random().Next(0, 100)
+                };
+            }, _cancellationTokenSource.Token);
+        }
+
+        private void CancelScan()
+        {
+            _cancellationTokenSource?.Cancel();
+        }
+
+        private void ExportResults()
+        {
+            // Implementation would go here
+        }
+
+        public class AsyncCommand : System.Windows.Input.ICommand
+        {
+            private readonly Func<Task> _execute;
+            private readonly Func<bool> _canExecute;
+
+            public AsyncCommand(Func<Task> execute, Func<bool> canExecute = null)
+            {
+                _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+                _canExecute = canExecute ?? (() => true);
+            }
+
+            public event EventHandler CanExecuteChanged;
+
+            public bool CanExecute(object parameter) => _canExecute();
+            
+            public async void Execute(object parameter)
+            {
+                await _execute();
+            }
+
+            public void RaiseCanExecuteChanged()
+            {
+                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        
+        public class RelayCommand : System.Windows.Input.ICommand
+        {
+            private readonly Action _execute;
+            private readonly Func<bool> _canExecute;
+
+            public RelayCommand(Action execute, Func<bool> canExecute = null)
+            {
+                _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+                _canExecute = canExecute ?? (() => true);
+            }
+
+            public event EventHandler CanExecuteChanged;
+
+            public bool CanExecute(object parameter) => _canExecute();
+            public void Execute(object parameter) => _execute();
+
+            public void RaiseCanExecuteChanged()
+            {
+                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public async Task StartScanAsync(Func<string, Task<IpScanResult>> scanFunction, CancellationToken cancellationToken)
@@ -228,17 +321,5 @@ namespace IPGeoLocator.ViewModels
             // Wait for all tasks to complete
             await Task.WhenAll(tasks);
         }
-    }
-
-    public class IpScanResult
-    {
-        public string IpAddress { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string Country { get; set; } = "";
-        public string City { get; set; } = "";
-        public string Isp { get; set; } = "";
-        public int ThreatScore { get; set; } = -1;
-        public string ErrorMessage { get; set; } = "";
-        public DateTime ScanTime { get; set; } = DateTime.UtcNow;
     }
 }

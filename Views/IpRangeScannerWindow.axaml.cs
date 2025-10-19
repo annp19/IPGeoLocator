@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using IPGeoLocator.Models;
 using IPGeoLocator.ViewModels;
 using System;
 using System.Threading;
@@ -25,22 +26,55 @@ namespace IPGeoLocator.Views
             AvaloniaXamlLoader.Load(this);
         }
 
-        // This would be called when the user wants to start a scan
-        // For now, we'll provide a placeholder implementation
         private async Task<IpScanResult> ScanIpAddressAsync(string ipAddress)
         {
-            // Placeholder implementation - in a real app, this would call the actual geolocation API
-            await Task.Delay(100); // Simulate network delay
-            
-            return new IpScanResult
+            // This would call the actual geolocation API from the main window
+            // For now, we'll create a basic implementation
+            try
             {
-                IpAddress = ipAddress,
-                Status = "Success",
-                Country = "United States",
-                City = "New York",
-                Isp = "Example ISP",
-                ThreatScore = new Random().Next(0, 100)
-            };
+                // Simulate network request delay
+                await Task.Delay(50, _cancellationTokenSource.Token);
+                
+                // In a real implementation, you would call the geolocation service here
+                // For now, we'll return mock data to demonstrate functionality
+                return new IpScanResult
+                {
+                    IpAddress = ipAddress,
+                    Status = "Success",
+                    Country = "United States",
+                    City = "New York",
+                    Isp = "Example ISP",
+                    ThreatScore = new Random().Next(0, 100),
+                    ScanTime = DateTime.UtcNow
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                return new IpScanResult
+                {
+                    IpAddress = ipAddress,
+                    Status = "Cancelled",
+                    ErrorMessage = "Scan cancelled"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new IpScanResult
+                {
+                    IpAddress = ipAddress,
+                    Status = "Error",
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+        
+        public async Task StartScanAsync()
+        {
+            if (_viewModel != null)
+            {
+                // Call the StartScanAsync method with the scan function
+                await _viewModel.StartScanAsync(ScanIpAddressAsync, _cancellationTokenSource.Token);
+            }
         }
 
         protected override void OnClosed(EventArgs e)

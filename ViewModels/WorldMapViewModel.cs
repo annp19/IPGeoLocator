@@ -179,6 +179,72 @@ namespace IPGeoLocator.ViewModels
                 IsLoading = false;
             }
         }
+        
+        // Adding missing properties and commands
+        private bool _showOnlyThreats = false;
+        private double _zoomLevel = 1.0;
+        
+        public bool ShowOnlyThreats
+        {
+            get => _showOnlyThreats;
+            set => SetProperty(ref _showOnlyThreats, value);
+        }
+        
+        public double ZoomLevel
+        {
+            get => _zoomLevel;
+            set => SetProperty(ref _zoomLevel, value);
+        }
+        
+        private System.Windows.Input.ICommand? _refreshCommand;
+        private System.Windows.Input.ICommand? _exportMapCommand;
+        private System.Windows.Input.ICommand? _clearMapCommand;
+
+        public System.Windows.Input.ICommand RefreshCommand => 
+            _refreshCommand ??= new RelayCommand(RefreshMap, () => !IsLoading);
+        public System.Windows.Input.ICommand ExportMapCommand => 
+            _exportMapCommand ??= new RelayCommand(ExportMap, () => MapPoints.Count > 0);
+        public System.Windows.Input.ICommand ClearMapCommand => 
+            _clearMapCommand ??= new RelayCommand(ClearMapAction, () => MapPoints.Count > 0);
+
+        private void RefreshMap()
+        {
+            // Update the map based on current parameters
+            StatusMessage = "Map refreshed";
+        }
+        
+        private void ExportMap()
+        {
+            // Trigger export process (would need file dialog)
+            StatusMessage = "Export functionality would open file dialog here";
+        }
+        
+        private void ClearMapAction()
+        {
+            ClearPoints();
+        }
+        
+        private class RelayCommand : System.Windows.Input.ICommand
+        {
+            private readonly Action _execute;
+            private readonly Func<bool> _canExecute;
+
+            public RelayCommand(Action execute, Func<bool> canExecute = null)
+            {
+                _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+                _canExecute = canExecute ?? (() => true);
+            }
+
+            public event EventHandler? CanExecuteChanged;
+
+            public bool CanExecute(object? parameter) => _canExecute();
+            public void Execute(object? parameter) => _execute();
+
+            public void RaiseCanExecuteChanged()
+            {
+                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
     }
 
     public class MapPoint
