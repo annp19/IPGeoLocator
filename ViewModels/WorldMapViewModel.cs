@@ -249,7 +249,7 @@ namespace IPGeoLocator.ViewModels
             StatusMessage = "Export functionality would open file dialog here";
         }
         
-        private void ClearMapAction()
+        public void ClearMapAction()
         {
             ClearPoints();
         }

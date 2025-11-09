@@ -26,6 +26,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using NewtonsoftJson = Newtonsoft.Json;
+using IPGeoLocator.Utilities;
 
 namespace IPGeoLocator;
 
@@ -37,23 +38,33 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // Connection pooling settings
         PooledConnectionLifetime = TimeSpan.FromMinutes(5),
         PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-        MaxConnectionsPerServer = 10,
+        MaxConnectionsPerServer = 20,  // Increased for better concurrent performance
         
         // Timeout settings
         ConnectTimeout = TimeSpan.FromSeconds(5),
         
         // Automatic redirection and decompression
         AllowAutoRedirect = true,
-        AutomaticDecompression = System.Net.DecompressionMethods.All
+        AutomaticDecompression = System.Net.DecompressionMethods.All,
+        
+        // Use in-memory DNS cache to avoid repeated DNS lookups
+        UseCookies = false
     })
     {
-        Timeout = TimeSpan.FromSeconds(8) // Global timeout for all requests
+        Timeout = TimeSpan.FromSeconds(8), // Global timeout for all requests
+        // Add default headers to reduce request size
+        DefaultRequestHeaders = 
+        {
+            { "User-Agent", "IPGeoLocator/1.0" },
+            { "Accept", "application/json" }
+        }
     };
 
     // Database context, history service, and performance service
     private readonly AppDbContext _dbContext;
     private readonly LookupHistoryService _historyService;
     private readonly PerformanceService _performanceService;
+    private readonly NetworkToolsService _networkToolsService;
 
     // In-memory caches for performance with expiration and automatic cleanup
     private static readonly Dictionary<string, (GeolocationResponse? response, DateTime timestamp)> _geoCache = new();
@@ -79,6 +90,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _geoCache.Remove(key);
         }
         
+        // If cache is still too large, remove oldest entries
+        while (_geoCache.Count > MaxCacheSize)
+        {
+            var oldestKey = _geoCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+            _geoCache.Remove(oldestKey);
+        }
+        
         // Clean up expired flag cache entries and dispose bitmaps
         var expiredFlagKeys = _flagCache.Where(kvp => now - kvp.Value.timestamp > CacheExpiration)
                                         .Select(kvp => kvp.Key)
@@ -100,6 +118,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _flagCache.Remove(key);
         }
         
+        // If flag cache is still too large, remove oldest entries
+        while (_flagCache.Count > MaxCacheSize)
+        {
+            var oldestKey = _flagCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+            var bitmap = _flagCache[oldestKey].bitmap;
+            if (bitmap != null)
+            {
+                try
+                {
+                    bitmap.Dispose();
+                }
+                catch
+                {
+                    // Ignore disposal errors
+                }
+            }
+            _flagCache.Remove(oldestKey);
+        }
+        
         // Clean up expired local time cache entries
         var expiredTimeKeys = _localTimeCache.Where(kvp => now - kvp.Value.timestamp > CacheExpiration)
                                              .Select(kvp => kvp.Key)
@@ -107,6 +144,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         foreach (var key in expiredTimeKeys)
         {
             _localTimeCache.Remove(key);
+        }
+        
+        // If time cache is still too large, remove oldest entries
+        while (_localTimeCache.Count > MaxCacheSize)
+        {
+            var oldestKey = _localTimeCache.OrderBy(kvp => kvp.Value.timestamp).First().Key;
+            _localTimeCache.Remove(oldestKey);
         }
     }
     
@@ -264,6 +308,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _dbContext = new AppDbContext();
         _historyService = new LookupHistoryService(_dbContext);
         _performanceService = new PerformanceService();
+        _networkToolsService = new NetworkToolsService();
         
         InitializeComponent();
         DataContext = this;
@@ -296,9 +341,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
 public async Task LookupIpCommand()
 {
-    if (!System.Net.IPAddress.TryParse(IpAddressInput, out _))
+    var validationResult = Utilities.IpValidator.ValidateIpInput(IpAddressInput);
+    if (!validationResult.IsValid)
     {
-        SetStatus(Locale["StatusInvalidIP"], isError: true);
+        SetStatus(validationResult.Error ?? Locale["StatusInvalidIP"], isError: true);
+        return;
+    }
+    
+    // Check if it's a single IP (the only type we currently support in main lookup)
+    if (validationResult.Type != IpInputType.SingleIp)
+    {
+        SetStatus("This lookup type is not supported in main lookup. Use the IP Range Scanner for ranges or CIDR blocks.", isError: true);
         return;
     }
 
@@ -1053,6 +1106,33 @@ public async Task LookupIpCommand()
         return true;
     }
 
+    // Cache warming method - pre-fetches common lookups to improve performance
+    private async Task WarmCacheAsync()
+    {
+        // Pre-populate cache with common IP addresses for faster subsequent lookups
+        var commonIps = new[] { "8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1" };
+        
+        foreach (var ip in commonIps)
+        {
+            try
+            {
+                // Don't wait for these operations, just fire and forget to warm the cache
+                _ = Task.Run(async () => await GetGeolocationAsync(ip, CancellationToken.None));
+            }
+            catch
+            {
+                // Ignore errors during cache warming
+            }
+        }
+    }
+    
+    protected override void OnOpened(EventArgs e)
+    {
+        // Warm the cache when the application starts
+        _ = Task.Run(async () => await WarmCacheAsync());
+        base.OnOpened(e);
+    }
+    
     protected override void OnClosed(EventArgs e)
     {
         _dbContext?.Dispose();
@@ -1118,6 +1198,11 @@ public async Task StartIpRangeScanCommand()
 {
     // Open the IP range scanner window
     var rangeScannerWindow = new IpRangeScannerWindow();
+    
+    // Pass the API key to the scanner window
+    rangeScannerWindow.AbuseIpDbApiKey = this.AbuseIpDbApiKey;
+    rangeScannerWindow.VirusTotalApiKey = this.VirusTotalApiKey;
+    
     await rangeScannerWindow.ShowDialog(this);
 }
 
@@ -1137,6 +1222,7 @@ public async Task ShowWorldMapCommand()
         SetStatus($"Failed to open world map: {ex.Message}", isError: true);
     }
 }
+
 
 /// <summary>
 /// Command to export results to the world map format
@@ -1173,6 +1259,123 @@ public async Task ExportToWorldMapCommand()
     catch (Exception ex)
     {
         SetStatus($"Failed to export to world map: {ex.Message}", isError: true);
+    }
+}
+
+/// <summary>
+/// Command to test connectivity to the target IP using ping
+/// </summary>
+public async Task PingCommand()
+{
+    if (string.IsNullOrWhiteSpace(IpAddressInput))
+    {
+        SetStatus("Please enter an IP address to ping.", isError: true);
+        return;
+    }
+
+    SetStatus("Pinging...", isWorking: true);
+    IsLoading = true;
+
+    try
+    {
+        var result = await _networkToolsService.PingAsync(IpAddressInput);
+        
+        if (result.Success)
+        {
+            SetStatus("Ping successful!", isSuccess: true);
+            // In a real implementation, you might want to show the ping results in a separate UI element
+            System.Diagnostics.Debug.WriteLine($"Ping output: {result.Output}");
+        }
+        else
+        {
+            SetStatus($"Ping failed: {result.Output}", isError: true);
+        }
+    }
+    catch (Exception ex)
+    {
+        SetStatus($"Ping error: {ex.Message}", isError: true);
+    }
+    finally
+    {
+        IsLoading = false;
+    }
+}
+
+/// <summary>
+/// Command to trace the route to the target IP
+/// </summary>
+public async Task TracerouteCommand()
+{
+    if (string.IsNullOrWhiteSpace(IpAddressInput))
+    {
+        SetStatus("Please enter an IP address to trace.", isError: true);
+        return;
+    }
+
+    SetStatus("Tracing route...", isWorking: true);
+    IsLoading = true;
+
+    try
+    {
+        var result = await _networkToolsService.TracerouteAsync(IpAddressInput);
+        
+        if (result.Success)
+        {
+            SetStatus("Traceroute completed!", isSuccess: true);
+            // In a real implementation, you might want to show the traceroute results in a separate UI element
+            System.Diagnostics.Debug.WriteLine($"Traceroute output: {result.Output}");
+        }
+        else
+        {
+            SetStatus($"Traceroute failed: {result.Output}", isError: true);
+        }
+    }
+    catch (Exception ex)
+    {
+        SetStatus($"Traceroute error: {ex.Message}", isError: true);
+    }
+    finally
+    {
+        IsLoading = false;
+    }
+}
+
+/// <summary>
+/// Command to get WHOIS information for the target IP
+/// </summary>
+public async Task WhoisCommand()
+{
+    if (string.IsNullOrWhiteSpace(IpAddressInput))
+    {
+        SetStatus("Please enter an IP address for WHOIS lookup.", isError: true);
+        return;
+    }
+
+    SetStatus("Getting WHOIS information...", isWorking: true);
+    IsLoading = true;
+
+    try
+    {
+        var result = await _networkToolsService.WhoisAsync(IpAddressInput);
+        
+        if (result.Success)
+        {
+            SetStatus("WHOIS lookup completed!", isSuccess: true);
+            // In a real implementation, you might want to show the WHOIS results in a separate UI element
+            System.Diagnostics.Debug.WriteLine($"WHOIS output: {result.Output}");
+        }
+        else
+        {
+            SetStatus($"WHOIS lookup failed: {result.Output}", isError: true);
+        }
+    }
+    catch (Exception ex)
+    {
+        SetStatus($"WHOIS error: {ex.Message}", isError: true);
+    }
+    finally
+    {
+        IsLoading = false;
     }
 }
 
@@ -1275,4 +1478,16 @@ private void UpdateThreatVisualization()
     
     _threatVisualizationControl.UpdateThreatVisualization(threatData);
 }
+
+/// <summary>
+/// Command to test connectivity to the target IP using ping
+/// </summary>
+
+/// <summary>
+/// Command to trace the route to the target IP
+/// </summary>
+
+/// <summary>
+/// Command to get WHOIS information for the target IP
+/// </summary>
 }

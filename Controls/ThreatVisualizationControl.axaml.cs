@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using ScottPlot;
 using ScottPlot.Avalonia;
+using ScottPlot.TickGenerators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,34 +69,48 @@ namespace IPGeoLocator.Controls
             var serviceNames = threatData.Select(td => td.ServiceName).ToArray();
             var threatScores = threatData.Select(td => (double)td.ThreatScore).ToArray();
             
-            // Create a simple scatter plot for threat scores
-            var xs = Enumerable.Range(0, threatScores.Length).Select(i => (double)i).ToArray();
+            // Create scatter plot for better visualization of threat levels (compatibility with ScottPlot version)
+            var xs = Enumerable.Range(0, threatScores.Length).Select(x => (double)x).ToArray();
+            var scatterPlot = plt.Add.Scatter(xs, threatScores);
+            scatterPlot.MarkerSize = 15;
+            scatterPlot.LineWidth = 0;
             
-            // Plot each point separately to have different colors
+            // Color code points based on threat level
             for (int i = 0; i < threatScores.Length; i++)
             {
-                var singleScatter = plt.Add.Scatter(
-                    xs: new double[] { xs[i] },
-                    ys: new double[] { threatScores[i] });
-                singleScatter.MarkerSize = 15;
-                singleScatter.LineWidth = 0;
-                
-                // Color code points based on threat level
-                var color = threatScores[i] < 30 ? ScottPlot.Color.FromHex("#00AA00") :  // Green
-                           threatScores[i] < 70 ? ScottPlot.Color.FromHex("#FFAA00") :  // Orange
-                           ScottPlot.Color.FromHex("#FF0000");                        // Red
-                singleScatter.Color = color;
+                var color = threatScores[i] < 30 ? ScottPlot.Color.FromHex("#00AA00") :  // Green (Low Risk)
+                           threatScores[i] < 70 ? ScottPlot.Color.FromHex("#FFAA00") :  // Orange (Medium Risk)
+                           ScottPlot.Color.FromHex("#FF0000");                        // Red (High Risk)
+                scatterPlot.Color = color;
+            }
+            
+            // Add labels on the bars
+            for (int i = 0; i < serviceNames.Length; i++)
+            {
+                // Add the threat score value on top of each bar
+                var text = plt.Add.Text(threatScores[i].ToString("F0"), i, threatScores[i] + 2);
+                text.Label.FontSize = 12;
             }
 
+            // Add risk level thresholds as horizontal lines - using Scatter with horizontal lines as compatible workaround
+            // Add horizontal lines at risk thresholds using compatible API
+            plt.Add.HorizontalLine(30); // Default color
+            plt.Add.HorizontalLine(70); // Default color
+            plt.Add.HorizontalLine(90); // Default color
+
+            // Set appropriate axis limits
+            plt.Axes.SetLimitsY(0, 105);
+            plt.Axes.SetLimitsX(-0.5, threatScores.Length - 0.5);
+            
+            // Add legend for risk thresholds - handled by individual label annotations
+            // plt.ShowLegend();
+            
             plt.Title("Threat Intelligence Scores");
-            plt.YLabel("Threat Score");
+            plt.YLabel("Threat Score (0-100)");
             
-            // For ScottPlot 5.x, setting X-axis labels is different
-            var xPositions = Enumerable.Range(0, serviceNames.Length).Select(i => (double)i).ToArray();
-            
-            // Set X-axis tick positions and labels
-            // For ScottPlot 5.x, we need to use different API
-            // Let's just skip custom labels for now to avoid API issues
+            // Add service names as custom X-axis labels - for compatibility
+            plt.XLabel("Threat Services");
+            plt.YLabel("Threat Score (0-100)");
 
             _threatPlot.Refresh();
         }

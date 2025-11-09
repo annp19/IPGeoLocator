@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:IPGeoLocator.Controls"
+        x:Class="IPGeoLocator.WorldMapWindow"
+        Title="World Map Visualization"
+        Width="1200"
+        Height="800">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Toolbar -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="5">
+      <Button Name="LoadDataButton" Content="Load Data" Margin="0,0,5,0"/>
+      <Button Name="RefreshButton" Content="Refresh Map" Margin="0,0,5,0"/>
+      <Button Name="ClearButton" Content="Clear Map" Margin="0,0,5,0"/>
+      <CheckBox Name="ShowThreatsOnlyCheckBox" Content="Show Threats Only" Margin="0,0,5,0"/>
+      <Slider Name="ThreatThresholdSlider" Width="100" Minimum="0" Maximum="100" Value="70" 
+              VerticalAlignment="Center" Margin="0,0,5,0"/>
+      <TextBlock Text="Threat Threshold:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+      <TextBlock Name="ThresholdValueTextBlock" Text="{Binding Value, ElementName=ThreatThresholdSlider, StringFormat={}{0:F0}}" 
+                 VerticalAlignment="Center" Margin="0,0,10,0"/>
+      <Button Name="ExportMapButton" Content="Export Map" Margin="0,0,5,0"/>
+      <Button Name="CloseButton" Content="Close" HorizontalAlignment="Right"/>
+    </StackPanel>
+    
+    <!-- Map Visualization Control -->
+    <controls:WorldMapControl Grid.Row="1" 
+                              Name="WorldMapControl" 
+                              Margin="10,0,10,10"/>
+    
+    <!-- Status Bar -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,0" HorizontalAlignment="Left">
+      <TextBlock Name="StatusTextBlock" Text="{Binding StatusMessage}" 
+                 VerticalAlignment="Center"/>
+    </StackPanel>
+  </Grid>
+</Window>

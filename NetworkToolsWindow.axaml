@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="IPGeoLocator.NetworkToolsWindow"
+        Title="Network Tools"
+        Width="800"
+        Height="600">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Toolbar -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Spacing="5">
+      <TextBox Name="TargetTextBox" Watermark="Enter IP or domain" Width="200" Margin="0,0,5,0"/>
+      <Button Name="PingButton" Content="Ping" Margin="0,0,5,0"/>
+      <Button Name="TracerouteButton" Content="Traceroute" Margin="0,0,5,0"/>
+      <Button Name="WhoisButton" Content="WHOIS" Margin="0,0,5,0"/>
+      <Button Name="CancelButton" Content="Close" HorizontalAlignment="Right"/>
+    </StackPanel>
+    
+    <!-- Results Display -->
+    <TextBox Grid.Row="1" 
+             Name="ResultsTextBox"
+             Margin="10,0,10,10"
+             TextWrapping="Wrap"
+             AcceptsReturn="True"
+             AcceptsTab="True"
+             IsReadOnly="True"
+             FontFamily="Consolas"
+             ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+             
+    <!-- Status Bar -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10,0" HorizontalAlignment="Left">
+      <TextBlock Name="StatusTextBlock" Text="Ready" VerticalAlignment="Center"/>
+    </StackPanel>
+  </Grid>
+</Window>
