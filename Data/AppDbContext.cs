@@ -9,6 +9,14 @@ namespace IPGeoLocator.Data
     {
         public DbSet<LookupHistory> LookupHistories { get; set; } = null!;
 
+        public AppDbContext()
+        {
+        }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
