@@ -55,7 +55,27 @@ public class MainWindowViewModel : INotifyPropertyChanged
         
         UpdateLocale();
     }
-    // ... (giữ nguyên mọi mã logic khác, chỉ sửa type property là Models.GeolocationResponse)
+
+    // INotifyPropertyChanged implementation
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (!EqualityComparer<T>.Default.Equals(field, value))
+        {
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+        return false;
+    }
+
+    // Properties
     public GeolocationResponse? GeolocationResult
     {
         get => _geolocationResult;
@@ -68,5 +88,15 @@ public class MainWindowViewModel : INotifyPropertyChanged
             }
         }
     }
-    // ... (còn lại giữ nguyên logic, vẫn dùng Models.GeolocationResponse, không có ViewModels.GeolocationResponse)
+    
+    public string LocationString => GeolocationResult?.ToString() ?? "No location data";
+    
+    public string CoordinatesString => GeolocationResult != null 
+        ? $"{GeolocationResult.Lat}, {GeolocationResult.Lon}" 
+        : "N/A";
+    
+    private void UpdateLocale()
+    {
+        // Implementation would go here
+    }
 }
