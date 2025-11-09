@@ -18,51 +18,58 @@ env:
   PROJECT_NAME: 'IPGeoLocator'
 
 jobs:
-  # Fast feedback job for PRs - builds and tests on Linux only
+  # PR validation on all platforms
   pr-validation:
-    name: PR Validation (Quick Check)
+    name: PR Validation (All Targets)
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact_name: linux-x64
+          - os: windows-latest
+            runtime: win-x64
+            artifact_name: windows-x64
+          - os: macos-latest
+            runtime: osx-x64
+            artifact_name: macos-x64
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           lfs: true
-
       - name: Setup Git LFS
         run: git lfs checkout
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-
       - name: Restore dependencies
         run: dotnet restore ${{ env.PROJECT_NAME }}.csproj
-
       - name: Build and capture output
         id: build
         run: |
           set -o pipefail
           dotnet build ${{ env.PROJECT_NAME }}.csproj --configuration Release --no-restore 2>&1 | tee build-results.log
         continue-on-error: true
-
       - name: Extract build errors
         if: failure()
         run: |
-          echo "## ❌ Build Failed" > error-build-comment.log
+          echo "## ❌ Build Failed on ${{ matrix.os }}" > error-build-comment.log
           echo "" >> error-build-comment.log
           echo "\`\`\`" >> error-build-comment.log
           cat build-results.log | tail -100 >> error-build-comment.log
           echo "\`\`\`" >> error-build-comment.log
-
       - name: Comment build errors on PR
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          header: build
+          header: build-${{ matrix.os }}
           path: error-build-comment.log
-
       - name: Run unit tests
         if: success()
         id: tests
@@ -74,39 +81,35 @@ jobs:
             echo "No test project found, skipping tests"
           fi
         continue-on-error: true
-
       - name: Extract test failures
         if: failure()
         run: |
-          echo "## ❌ Tests Failed" > error-test-comment.log
+          echo "## ❌ Tests Failed on ${{ matrix.os }}" > error-test-comment.log
           echo "" >> error-test-comment.log
           echo "\`\`\`" >> error-test-comment.log
           cat test-results.log | tail -100 >> error-test-comment.log
           echo "\`\`\`" >> error-test-comment.log
-
       - name: Comment test failures on PR
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          header: tests
+          header: tests-${{ matrix.os }}
           path: error-test-comment.log
-
       - name: Post success comment
         if: success()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          header: validation
+          header: validation-${{ matrix.os }}
           message: |
-            ## ✅ PR Validation Passed
+            ## ✅ PR Validation Passed on ${{ matrix.os }}
             
-            Build and tests completed successfully on Linux (ubuntu-latest).
+            Build and tests completed successfully.
             
             Full multi-platform builds will run after merge to main.
 
   # Full multi-platform build job
   build:
     name: Build on ${{ matrix.os }}
-    # Skip for PRs (handled by pr-validation), run for pushes and tags
     if: github.event_name != 'pull_request'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -123,161 +126,142 @@ jobs:
           - os: macos-latest
             runtime: osx-x64
             artifact_name: macos-x64
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        lfs: true
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Setup Git LFS
+        run: git lfs checkout
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build application
+        run: dotnet build --configuration Release --no-restore
+      - name: Run tests
+        run: |
+          if [ -d "${{ env.PROJECT_NAME }}.Tests" ]; then
+            dotnet test --configuration Release --no-build --verbosity normal
+          else
+            echo "No test project found, skipping tests"
+          fi
+        shell: bash
+      - name: Publish application (Windows)
+        run: |
+          dotnet publish "./${{ env.PROJECT_NAME }}.csproj" ^
+            --configuration Release ^
+            --runtime ${{ matrix.runtime }} ^
+            --self-contained true ^
+            --output "./publish/${{ matrix.artifact_name }}" ^
+            -p:PublishSingleFile=true ^
+            -p:PublishTrimmed=false ^
+            -p:IncludeNativeLibrariesForSelfExtract=true
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+      - name: Publish application (Unix)
+        run: |
+          dotnet publish "./${{ env.PROJECT_NAME }}.csproj" \
+            --configuration Release \
+            --runtime ${{ matrix.runtime }} \
+            --self-contained true \
+            --output "./publish/${{ matrix.artifact_name }}" \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=false \
+            -p:IncludeNativeLibrariesForSelfExtract=true
+        if: matrix.os != 'windows-latest'
+      - name: Create archive (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd ./publish/${{ matrix.artifact_name }}
+          tar -czf ../${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.tar.gz *
+      - name: Create archive (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd ./publish/${{ matrix.artifact_name }}
+          powershell Compress-Archive -Path * -DestinationPath ../${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.zip
+      - name: Upload build artifacts (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}
+          path: ./publish/${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.tar.gz
+          retention-days: 30
+      - name: Upload build artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}
+          path: ./publish/${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.zip
+          retention-days: 30
 
-    - name: Setup Git LFS
-      run: git lfs checkout
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build application
-      run: dotnet build --configuration Release --no-restore
-
-    - name: Run tests
-      run: |
-        if [ -d "${{ env.PROJECT_NAME }}.Tests" ]; then
-          dotnet test --configuration Release --no-build --verbosity normal
-        else
-          echo "No test project found, skipping tests"
-        fi
-      shell: bash
-      # Removed continue-on-error to ensure tests must pass
-
-    - name: Publish application (Windows)
-      run: |
-        dotnet publish "./${{ env.PROJECT_NAME }}.csproj" ^
-          --configuration Release ^
-          --runtime ${{ matrix.runtime }} ^
-          --self-contained true ^
-          --output "./publish/${{ matrix.artifact_name }}" ^
-          -p:PublishSingleFile=true ^
-          -p:PublishTrimmed=false ^
-          -p:IncludeNativeLibrariesForSelfExtract=true
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-
-    - name: Publish application (Unix)
-      run: |
-        dotnet publish "./${{ env.PROJECT_NAME }}.csproj" \
-          --configuration Release \
-          --runtime ${{ matrix.runtime }} \
-          --self-contained true \
-          --output "./publish/${{ matrix.artifact_name }}" \
-          -p:PublishSingleFile=true \
-          -p:PublishTrimmed=false \
-          -p:IncludeNativeLibrariesForSelfExtract=true
-      if: matrix.os != 'windows-latest'
-
-    - name: Create archive (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      run: |
-        cd ./publish/${{ matrix.artifact_name }}
-        tar -czf ../${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.tar.gz *
-
-    - name: Create archive (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        cd ./publish/${{ matrix.artifact_name }}
-        powershell Compress-Archive -Path * -DestinationPath ../${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.zip
-
-    - name: Upload build artifacts (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}
-        path: ./publish/${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.tar.gz
-        retention-days: 30
-
-    - name: Upload build artifacts (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}
-        path: ./publish/${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.zip
-        retention-days: 30
-
-  # Release job - creates GitHub release with artifacts
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        lfs: true
-
-    - name: Setup Git LFS
-      run: git lfs checkout
-
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: ./artifacts
-
-    - name: Display artifact structure
-      run: |
-        echo "=== Artifacts to be released ==="
-        find ./artifacts -type f | sort
-        echo ""
-        echo "=== Directory structure ==="
-        ls -laR ./artifacts
-
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-        body: |
-          ## IPGeoLocator Release ${{ github.ref_name }}
-          
-          Cross-platform desktop application for IP address geolocation with threat intelligence capabilities.
-          
-          ### Downloads
-          
-          - **Windows x64**: Download the `IPGeoLocator-windows-x64.zip` file
-          - **Linux x64**: Download the `IPGeoLocator-linux-x64.tar.gz` file  
-          - **macOS x64**: Download the `IPGeoLocator-macos-x64.tar.gz` file
-          
-          ### Installation
-          
-          1. Download the appropriate file for your platform
-          2. Extract the archive
-          3. Run the executable (`IPGeoLocator.exe` on Windows, `IPGeoLocator` on Linux/macOS)
-          
-          The application is self-contained and includes all required dependencies.
-          
-          ### Features
-          
-          - IP Geolocation lookup with geographic information
-          - Threat Intelligence from AbuseIPDB and VirusTotal  
-          - Local time lookup for IP locations
-          - Lookup history with SQLite database
-          - Export to JSON, CSV, and TXT formats
-          - Multi-language support (English/Vietnamese)
-          - Dark/Light theme support
-          
-          ### Changes
-          
-          See the automatically generated release notes below for all changes in this release.
-        files: |
-          ./artifacts/IPGeoLocator-windows-x64/IPGeoLocator-windows-x64.zip
-          ./artifacts/IPGeoLocator-linux-x64/IPGeoLocator-linux-x64.tar.gz
-          ./artifacts/IPGeoLocator-macos-x64/IPGeoLocator-macos-x64.tar.gz
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Setup Git LFS
+        run: git lfs checkout
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+      - name: Display artifact structure
+        run: |
+          echo "=== Artifacts to be released ==="
+          find ./artifacts -type f | sort
+          echo ""
+          echo "=== Directory structure ==="
+          ls -laR ./artifacts
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## IPGeoLocator Release ${{ github.ref_name }}
+            
+            Cross-platform desktop application for IP address geolocation with threat intelligence capabilities.
+            
+            ### Downloads
+            
+            - **Windows x64**: Download the `IPGeoLocator-windows-x64.zip` file
+            - **Linux x64**: Download the `IPGeoLocator-linux-x64.tar.gz` file  
+            - **macOS x64**: Download the `IPGeoLocator-macos-x64.tar.gz` file
+            
+            ### Installation
+            
+            1. Download the appropriate file for your platform
+            2. Extract the archive
+            3. Run the executable (`IPGeoLocator.exe` on Windows, `IPGeoLocator` on Linux/macOS)
+            
+            The application is self-contained and includes all required dependencies.
+            
+            ### Features
+            
+            - IP Geolocation lookup with geographic information
+            - Threat Intelligence from AbuseIPDB and VirusTotal  
+            - Local time lookup for IP locations
+            - Lookup history with SQLite database
+            - Export to JSON, CSV, and TXT formats
+            - Multi-language support (English/Vietnamese)
+            - Dark/Light theme support
+            
+            ### Changes
+            
+            See the automatically generated release notes below for all changes in this release.
+          files: |
+            ./artifacts/IPGeoLocator-windows-x64/IPGeoLocator-windows-x64.zip
+            ./artifacts/IPGeoLocator-linux-x64/IPGeoLocator-linux-x64.tar.gz
+            ./artifacts/IPGeoLocator-macos-x64/IPGeoLocator-macos-x64.tar.gz
