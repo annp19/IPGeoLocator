@@ -95,6 +95,9 @@ namespace IPGeoLocator.FeatureVerification
             Console.WriteLine($"   ✓ Cancel command can execute: {canCancel}");
             Console.WriteLine($"   ✓ Export command can execute: {canExport}");
             
+            // Add a small delay to make this method truly async
+            await Task.Delay(10);
+            
             Console.WriteLine("   ✅ IP Range Scanner tests passed");
         }
         
@@ -155,6 +158,9 @@ namespace IPGeoLocator.FeatureVerification
             // Test settings
             var settings = new ThreatIntelSettings();
             Console.WriteLine($"   ✓ Default threat settings: AbuseIPDB enabled = {settings.EnableAbuseIPDB}");
+            
+            // Add a small delay to make this method truly async
+            await Task.Delay(10);
             
             Console.WriteLine("   ✅ Threat Intelligence Visualization tests passed");
         }

@@ -104,11 +104,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         foreach (var key in expiredFlagKeys)
         {
             // Dispose bitmap to prevent memory leaks
-            if (_flagCache[key].bitmap != null)
+            if (_flagCache.TryGetValue(key, out var cachedValue) && cachedValue.bitmap != null)
             {
                 try
                 {
-                    _flagCache[key].bitmap.Dispose();
+                    cachedValue.bitmap.Dispose();
                 }
                 catch
                 {
@@ -525,22 +525,23 @@ public async Task LookupIpCommand()
 
         try
         {
-            // Show a dialog to let user choose the export format
-            var dialog = new OpenFileDialog()
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.StorageProvider == null) return;
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
             {
                 Title = "Export Results",
-                Filters = new System.Collections.Generic.List<FileDialogFilter>
+                FileTypeChoices = new[]
                 {
-                    new FileDialogFilter { Name = "JSON Files", Extensions = new System.Collections.Generic.List<string> { "json" } },
-                    new FileDialogFilter { Name = "CSV Files", Extensions = new System.Collections.Generic.List<string> { "csv" } },
-                    new FileDialogFilter { Name = "Text Files", Extensions = new System.Collections.Generic.List<string> { "txt" } }
+                    new Avalonia.Platform.Storage.FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } },
+                    new Avalonia.Platform.Storage.FilePickerFileType("CSV Files") { Patterns = new[] { "*.csv" } },
+                    new Avalonia.Platform.Storage.FilePickerFileType("Text Files") { Patterns = new[] { "*.txt" } }
                 }
-            };
+            });
 
-            var result = await dialog.ShowAsync(this);
-            if (result != null && result.Length > 0)
+            if (file != null)
             {
-                string filePath = result[0];
+                string filePath = file.Path.LocalPath;
                 string extension = System.IO.Path.GetExtension(filePath).ToLower();
 
                 switch (extension)
@@ -1112,17 +1113,26 @@ public async Task LookupIpCommand()
         // Pre-populate cache with common IP addresses for faster subsequent lookups
         var commonIps = new[] { "8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1" };
         
+        var tasks = new List<Task>();
+        
         foreach (var ip in commonIps)
         {
             try
             {
-                // Don't wait for these operations, just fire and forget to warm the cache
-                _ = Task.Run(async () => await GetGeolocationAsync(ip, CancellationToken.None));
+                // Create tasks for warming the cache and collect them
+                var task = Task.Run(async () => await GetGeolocationAsync(ip, CancellationToken.None));
+                tasks.Add(task);
             }
             catch
             {
                 // Ignore errors during cache warming
             }
+        }
+        
+        // Actually await the tasks to make this method truly async
+        if (tasks.Any())
+        {
+            await Task.WhenAll(tasks);
         }
     }
     

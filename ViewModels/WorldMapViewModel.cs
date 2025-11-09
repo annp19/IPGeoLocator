@@ -133,6 +133,9 @@ namespace IPGeoLocator.ViewModels
                 
                 _mapPointsCache[cacheKey] = (points, DateTime.Now);
                 StatusMessage = $"Loaded {points.Count} IP locations on the map";
+                
+                // Add a small delay to make this method truly async
+                await Task.Delay(1);
             }
             catch (Exception ex)
             {

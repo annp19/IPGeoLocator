@@ -162,22 +162,23 @@ namespace IPGeoLocator
         {
             try
             {
-                // Show a dialog to let user choose the export path
-                var dialog = new SaveFileDialog()
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel?.StorageProvider == null) return;
+
+                var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
                 {
                     Title = "Export Map",
-                    Filters = new System.Collections.Generic.List<FileDialogFilter>
+                    FileTypeChoices = new[]
                     {
-                        new FileDialogFilter { Name = "PNG Image", Extensions = new System.Collections.Generic.List<string> { "png" } },
-                        new FileDialogFilter { Name = "JPEG Image", Extensions = new System.Collections.Generic.List<string> { "jpg" } },
-                        new FileDialogFilter { Name = "PDF Document", Extensions = new System.Collections.Generic.List<string> { "pdf" } }
+                        new Avalonia.Platform.Storage.FilePickerFileType("PNG Image") { Patterns = new[] { "*.png" } },
+                        new Avalonia.Platform.Storage.FilePickerFileType("JPEG Image") { Patterns = new[] { "*.jpg", "*.jpeg" } },
+                        new Avalonia.Platform.Storage.FilePickerFileType("PDF Document") { Patterns = new[] { "*.pdf" } }
                     }
-                };
+                });
 
-                var result = await dialog.ShowAsync(this);
-                if (result != null)
+                if (file != null)
                 {
-                    await _viewModel.ExportMapAsync(result);
+                    await _viewModel.ExportMapAsync(file.Path.LocalPath);
                 }
             }
             catch (Exception ex)

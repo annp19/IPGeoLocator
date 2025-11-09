@@ -31,7 +31,7 @@ namespace IPGeoLocator
             
             InitializeComponent();
             SetupControls();
-            LoadHistoryAsync();
+            _ = LoadHistoryAsync(); // Fire and forget since we're in constructor
             SubscribeToEvents();
         }
 

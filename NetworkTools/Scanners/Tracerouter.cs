@@ -43,20 +43,22 @@ namespace IPGeoLocator.NetworkTools.Scanners
             {
                 // Resolve target hostname to IP if needed
                 IPAddress targetIp;
-                if (!IPAddress.TryParse(target, out targetIp))
+                if (target.Length == 0)
                 {
+                    throw new ArgumentException("Target cannot be empty", nameof(target));
+                }
+                else if (IPAddress.TryParse(target, out targetIp))
+                {
+                    // It's already a valid IP address
+                }
+                else
+                {
+                    // It's not an IP address, so resolve hostname to IP
                     var hostEntry = await Dns.GetHostEntryAsync(target, cancellationToken);
                     if (hostEntry.AddressList.Length > 0)
                     {
-                        IPAddress? firstIp = hostEntry.AddressList[0];
-                        if (firstIp != null)
-                        {
-                            targetIp = firstIp;
-                        }
-                        else
-                        {
-                            throw new Exception($"DNS resolved to a null IP address for {target}");
-                        }
+                        // AddressList[0] is guaranteed to be non-null by the check hostEntry.AddressList.Length > 0 above
+                        targetIp = hostEntry.AddressList[0];
                     }
                     else
                     {

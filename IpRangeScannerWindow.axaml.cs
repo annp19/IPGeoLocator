@@ -142,22 +142,24 @@ namespace IPGeoLocator
         {
             try
             {
-                // Show a dialog to let user choose the import file
-                var dialog = new OpenFileDialog()
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel?.StorageProvider == null) return;
+
+                var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
                 {
                     Title = "Import IP List",
-                    Filters = new System.Collections.Generic.List<FileDialogFilter>
+                    FileTypeFilter = new[]
                     {
-                        new FileDialogFilter { Name = "Text Files", Extensions = new System.Collections.Generic.List<string> { "txt" } },
-                        new FileDialogFilter { Name = "CSV Files", Extensions = new System.Collections.Generic.List<string> { "csv" } },
-                        new FileDialogFilter { Name = "All Files", Extensions = new System.Collections.Generic.List<string> { "*" } }
-                    }
-                };
+                        new Avalonia.Platform.Storage.FilePickerFileType("Text Files") { Patterns = new[] { "*.txt" } },
+                        new Avalonia.Platform.Storage.FilePickerFileType("CSV Files") { Patterns = new[] { "*.csv" } },
+                        new Avalonia.Platform.Storage.FilePickerFileType("All Files") { Patterns = new[] { "*" } }
+                    },
+                    AllowMultiple = false
+                });
 
-                var result = await dialog.ShowAsync(this);
-                if (result != null && result.Length > 0)
+                if (files != null && files.Count > 0)
                 {
-                    await _viewModel.ImportIpListAsync(result[0]);
+                    await _viewModel.ImportIpListAsync(files[0].Path.LocalPath);
                 }
             }
             catch (Exception ex)
@@ -183,22 +185,23 @@ namespace IPGeoLocator
         {
             try
             {
-                // Show a dialog to let user choose the export format
-                var dialog = new SaveFileDialog()
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel?.StorageProvider == null) return;
+
+                var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
                 {
                     Title = "Export Scan Results",
-                    Filters = new System.Collections.Generic.List<FileDialogFilter>
+                    FileTypeChoices = new[]
                     {
-                        new FileDialogFilter { Name = "JSON Files", Extensions = new System.Collections.Generic.List<string> { "json" } },
-                        new FileDialogFilter { Name = "CSV Files", Extensions = new System.Collections.Generic.List<string> { "csv" } },
-                        new FileDialogFilter { Name = "Text Files", Extensions = new System.Collections.Generic.List<string> { "txt" } }
+                        new Avalonia.Platform.Storage.FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } },
+                        new Avalonia.Platform.Storage.FilePickerFileType("CSV Files") { Patterns = new[] { "*.csv" } },
+                        new Avalonia.Platform.Storage.FilePickerFileType("Text Files") { Patterns = new[] { "*.txt" } }
                     }
-                };
+                });
 
-                var result = await dialog.ShowAsync(this);
-                if (result != null)
+                if (file != null)
                 {
-                    await _viewModel.ExportResultsAsync(result);
+                    await _viewModel.ExportResultsAsync(file.Path.LocalPath);
                 }
             }
             catch (Exception ex)

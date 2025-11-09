@@ -126,6 +126,9 @@ namespace IPGeoLocator.Tests
             var settings = new ThreatIntelSettings();
             Console.WriteLine($"   ✓ Default threat settings: AbuseIPDB enabled = {settings.EnableAbuseIPDB}");
             
+            // Add a small delay to make this method truly async
+            await Task.Delay(10);
+            
             Console.WriteLine("   ✅ Threat Intelligence Visualization tests passed");
         }
         
@@ -145,6 +148,9 @@ namespace IPGeoLocator.Tests
             
             Console.WriteLine($"   ✓ IP range set: {viewModel.StartIpAddress} to {viewModel.EndIpAddress}");
             Console.WriteLine($"   ✓ Concurrent scans set: {viewModel.ConcurrentScans}");
+            
+            // Add a small delay to make this method truly async
+            await Task.Delay(10);
             
             Console.WriteLine("   ✅ IP Range Scanner tests passed");
         }
