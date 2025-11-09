@@ -40,7 +40,7 @@ public class CacheServiceTests
         Func<Task<string?>> valueFactory = () =>
         {
             callCount++;
-            return Task.FromResult<string?>($"value-{callCount}");
+            return Task.FromResult<string?>("value-" + callCount);
         };
 
         // Act
@@ -150,7 +150,7 @@ public class CacheServiceTests
         // Act - Add more items than max cache size
         for (int i = 0; i < 10; i++)
         {
-            await cache.GetOrAddAsync(i, () => Task.FromResult<string?>($"value-{i}"));
+            await cache.GetOrAddAsync(i, () => Task.FromResult<string?>("value-" + i));
         }
 
         // Assert - Cache should not exceed max size
