@@ -41,13 +41,18 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Restore test dependencies
         run: dotnet restore IPGeoLocator.Tests/IPGeoLocator.Tests.csproj
-      - name: Test
+      - name: Run Tests and Capture Output
         id: tests
-        run: dotnet test IPGeoLocator.Tests/IPGeoLocator.Tests.csproj --configuration Release --no-build || true
-      - name: Comment on PR if tests fail
+        run: |
+          set -o pipefail
+          dotnet test IPGeoLocator.Tests/IPGeoLocator.Tests.csproj --configuration Release --no-build --logger:"console;verbosity=normal" 2>&1 | tee test-results.log || true
+      - name: Extract Test Failures
+        id: testfail
+        run: |
+          cat test-results.log | tail -100 > error-comment.log
+      - name: Comment on PR if tests fail (with error details)
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: tests
-          message: |
-            :x: **Unit Tests Failed**. See workflow logs for details.
+          path: error-comment.log
