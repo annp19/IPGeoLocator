@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTests", "ConsoleTest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FeatureVerification", "FeatureVerification\FeatureVerification.csproj", "{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IPGeoLocator.Tests", "IPGeoLocator.Tests\IPGeoLocator.Tests.csproj", "{E5FE9802-F9A2-4A0D-8E61-6B604469D540}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3CCCC53-4B2E-4E9B-A999-37FCA6D190A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5FE9802-F9A2-4A0D-8E61-6B604469D540}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5FE9802-F9A2-4A0D-8E61-6B604469D540}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5FE9802-F9A2-4A0D-8E61-6B604469D540}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5FE9802-F9A2-4A0D-8E61-6B604469D540}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
