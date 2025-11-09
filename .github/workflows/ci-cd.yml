@@ -16,11 +16,12 @@ on:
 env:
   DOTNET_VERSION: '9.0.x'
   PROJECT_NAME: 'IPGeoLocator'
+  SOLUTION_FILE: 'IPGeoLocator.sln'
 
 jobs:
   # PR validation on all platforms
   pr-validation:
-    name: PR Validation (All Targets)
+    name: PR Validation on ${{ matrix.os }}
     if: github.event_name == 'pull_request'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -42,59 +43,43 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+
       - name: Setup Git LFS
         run: git lfs checkout
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Restore dependencies
-        run: dotnet restore ${{ env.PROJECT_NAME }}.csproj
-      - name: Build and capture output
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build solution
         id: build
-        run: |
-          set -o pipefail
-          dotnet build ${{ env.PROJECT_NAME }}.csproj --configuration Release --no-restore 2>&1 | tee build-results.log
-        continue-on-error: true
-      - name: Extract build errors
-        if: failure()
-        run: |
-          echo "## ❌ Build Failed on ${{ matrix.os }}" > error-build-comment.log
-          echo "" >> error-build-comment.log
-          echo "\`\`\`" >> error-build-comment.log
-          cat build-results.log | tail -100 >> error-build-comment.log
-          echo "\`\`\`" >> error-build-comment.log
-      - name: Comment build errors on PR
-        if: failure()
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          header: build-${{ matrix.os }}
-          path: error-build-comment.log
+        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
+
       - name: Run unit tests
-        if: success()
         id: tests
-        run: |
-          set -o pipefail
-          if [ -d "${{ env.PROJECT_NAME }}.Tests" ]; then
-            dotnet test ${{ env.PROJECT_NAME }}.Tests/${{ env.PROJECT_NAME }}.Tests.csproj --configuration Release --logger:"console;verbosity=normal" 2>&1 | tee test-results.log
-          else
-            echo "No test project found, skipping tests"
-          fi
-        continue-on-error: true
-      - name: Extract test failures
+        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
+
+      - name: Extract build/test errors (if failed)
         if: failure()
         run: |
-          echo "## ❌ Tests Failed on ${{ matrix.os }}" > error-test-comment.log
-          echo "" >> error-test-comment.log
-          echo "\`\`\`" >> error-test-comment.log
-          cat test-results.log | tail -100 >> error-test-comment.log
-          echo "\`\`\`" >> error-test-comment.log
-      - name: Comment test failures on PR
+          echo "## ❌ Build/Test Failed on ${{ matrix.os }}" > error-comment.log
+          echo "" >> error-comment.log
+          echo "Please check the workflow logs for detailed error information." >> error-comment.log
+          echo "" >> error-comment.log
+          echo "[View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> error-comment.log
+        shell: bash
+
+      - name: Comment errors on PR
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          header: tests-${{ matrix.os }}
-          path: error-test-comment.log
+          header: validation-${{ matrix.os }}
+          path: error-comment.log
+
       - name: Post success comment
         if: success()
         uses: marocchino/sticky-pull-request-comment@v2
@@ -104,8 +89,6 @@ jobs:
             ## ✅ PR Validation Passed on ${{ matrix.os }}
             
             Build and tests completed successfully.
-            
-            Full multi-platform builds will run after merge to main.
 
   # Full multi-platform build job
   build:
@@ -131,24 +114,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+
       - name: Setup Git LFS
         run: git lfs checkout
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
       - name: Restore dependencies
-        run: dotnet restore
-      - name: Build application
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build solution
+        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
+
       - name: Run tests
-        run: |
-          if [ -d "${{ env.PROJECT_NAME }}.Tests" ]; then
-            dotnet test --configuration Release --no-build --verbosity normal
-          else
-            echo "No test project found, skipping tests"
-          fi
-        shell: bash
+        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration Release --no-build --verbosity normal
+
       - name: Publish application (Windows)
         run: |
           dotnet publish "./${{ env.PROJECT_NAME }}.csproj" ^
@@ -161,6 +144,7 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true
         if: matrix.os == 'windows-latest'
         shell: cmd
+
       - name: Publish application (Unix)
         run: |
           dotnet publish "./${{ env.PROJECT_NAME }}.csproj" \
@@ -172,16 +156,19 @@ jobs:
             -p:PublishTrimmed=false \
             -p:IncludeNativeLibrariesForSelfExtract=true
         if: matrix.os != 'windows-latest'
+
       - name: Create archive (Linux/macOS)
         if: matrix.os != 'windows-latest'
         run: |
           cd ./publish/${{ matrix.artifact_name }}
           tar -czf ../${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.tar.gz *
+
       - name: Create archive (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd ./publish/${{ matrix.artifact_name }}
           powershell Compress-Archive -Path * -DestinationPath ../${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.zip
+
       - name: Upload build artifacts (Linux/macOS)
         if: matrix.os != 'windows-latest'
         uses: actions/upload-artifact@v4
@@ -189,6 +176,7 @@ jobs:
           name: ${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}
           path: ./publish/${{ env.PROJECT_NAME }}-${{ matrix.artifact_name }}.tar.gz
           retention-days: 30
+
       - name: Upload build artifacts (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
@@ -207,12 +195,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+
       - name: Setup Git LFS
         run: git lfs checkout
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./artifacts
+
       - name: Display artifact structure
         run: |
           echo "=== Artifacts to be released ==="
@@ -220,6 +211,7 @@ jobs:
           echo ""
           echo "=== Directory structure ==="
           ls -laR ./artifacts
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
