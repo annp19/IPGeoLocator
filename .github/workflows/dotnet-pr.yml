@@ -27,8 +27,21 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Restore dependencies
         run: dotnet restore IPGeoLocator.csproj
-      - name: Build app
-        run: dotnet build IPGeoLocator.csproj --configuration Release --no-restore
+      - name: Build app and capture output
+        id: build
+        run: |
+          set -o pipefail
+          dotnet build IPGeoLocator.csproj --configuration Release --no-restore 2>&1 | tee build-results.log || true
+      - name: Extract Build Errors
+        id: builderrors
+        run: |
+          cat build-results.log | tail -100 > error-build-comment.log
+      - name: Comment on PR if build failed (with error details)
+        if: failure()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: build
+          path: error-build-comment.log
 
   unit_tests:
     name: Run Unit Tests
